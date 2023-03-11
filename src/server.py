@@ -153,7 +153,8 @@ async def generate_text(group_id: int, vk_token: str, hint: str = None):
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
-        result = microservice_generate(group_id, "text_gen", hint)
+        #result = microservice_generate(group_id, "text_gen", hint)
+        result = "Текстик"
         return DataString(data=result, status=0)
     except Exception as e:
         logging.info(f"{e}")
