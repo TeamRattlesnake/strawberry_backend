@@ -13,6 +13,7 @@ class OperationResult(BaseModel):
 class GroupAddModel(BaseModel):
     group_id: int
     texts: list[str]
+    vk_token: str
 
 
 class GroupAndStatusModel(BaseModel):

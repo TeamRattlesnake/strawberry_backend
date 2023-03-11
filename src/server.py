@@ -3,6 +3,7 @@ from fastapi.openapi.utils import get_openapi
 from config import EnvironmentConfig
 from database import Database
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataDict
@@ -73,18 +74,25 @@ async def verify(data: VerifyModel):
 async def add_group(data: GroupAddModel):
     group_id = data.group_id
     texts = data.texts
+    vk_token = data.vk_token
+    if not db.is_valid_token(vk_token):
+        raise HTTPException(status_code=404, detail="Token is bad")
     db.add_group(group_id)
     for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
         microservice_add_model(microservice_host_name, group_id, texts)
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
-async def get_groups():
+async def get_groups(vk_token: str):
+    if not db.is_valid_token(vk_token):
+        raise HTTPException(status_code=404, detail="Token is bad")
     result = db.get_all_groups_status
     return GroupAndStatusModelList(data=result)
 
 
 @app.get("/generate", response_model=DataDict)
-async def generate(group_id: int, microservice_host_name: str, hint: str = None):
+async def generate(group_id: int, microservice_host_name: str, vk_token : str, hint: str = None):
+    if not db.is_valid_token(vk_token):
+        raise HTTPException(status_code=404, detail="Token is bad")
     result = microservice_generate(group_id, microservice_host_name, hint)
     return DataDict(data=result)
