@@ -33,6 +33,12 @@ class DataString(BaseModel):
     status: int
 
 
+class GenerateQueryModel(BaseModel):
+    group_id: int
+    vk_token: str
+    hint: str = None
+
+
 class GenerateModel(BaseModel):
     microservice_host_name: str
     hint: str

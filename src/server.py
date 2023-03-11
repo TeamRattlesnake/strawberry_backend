@@ -7,7 +7,7 @@ from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import EnvironmentConfig
 from database import Database
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel
 from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
 
@@ -147,9 +147,12 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             return GroupAndStatusModelList(status=2, data=[])
 
 
-@app.get("/generate_text", response_model=DataString)
-async def generate_text(group_id: int, vk_token: str, hint: str = None):
+@app.post("/generate_text", response_model=DataString)
+async def generate_text(data: GenerateQueryModel):
     '''Генерирует текст по описанию hint'''
+    group_id = data.group_id
+    vk_token = data.vk_token
+    hint = data.hint
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
@@ -161,9 +164,12 @@ async def generate_text(group_id: int, vk_token: str, hint: str = None):
         return DataString(data="", status=2)
 
 
-@app.get("/image_get", response_model=DataString)
-async def image_gen(group_id: int, vk_token: str, hint: str = None):
+@app.post("/generate_image", response_model=DataString)
+async def generate_image(data: GenerateQueryModel):
     '''Генерирует картинку по описанию hint и отправляет ссылку на нее'''
+    group_id = data.group_id
+    vk_token = data.vk_token
+    hint = data.hint
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
@@ -174,9 +180,12 @@ async def image_gen(group_id: int, vk_token: str, hint: str = None):
         return DataString(data="", status=2)
 
 
-@app.get("/generate_meme_template", response_model=DataString)
-async def generate_meme_template(group_id: int, vk_token: str, hint: str = None):
+@app.post("/generate_meme_template", response_model=DataString)
+async def generate_meme_template(data: GenerateQueryModel):
     '''Ищет шаблон мема по описанию hint и отправляет ссылку на нее'''
+    group_id = data.group_id
+    vk_token = data.vk_token
+    hint = data.hint
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
