@@ -26,7 +26,7 @@ origins = [
     "http://localhost:14565",
     "https://localhost",
     "http://localhost",
-    "https://vk.com"
+    "https://vk.com",
 ]
 
 app.add_middleware(
@@ -87,12 +87,11 @@ async def verify(data: VerifyModel):
     query_dict = data.request
     vk_token = data.vk_token
     if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
-        db.add_token(vk_token)
-        return OperationResult(custom_code=0)
-    try:
-        return OperationResult(custom_code=1)
-    except:
-        return OperationResult(custom_code=2)
+        try:
+            db.add_token(vk_token)
+            return OperationResult(custom_code=0)
+        except:
+            return OperationResult(custom_code=2)
 
 
 @app.post("/add_group", response_model=OperationResult)
