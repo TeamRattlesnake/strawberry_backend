@@ -3,9 +3,10 @@ from fastapi.openapi.utils import get_openapi
 from config import EnvironmentConfig
 from database import Database
 from fastapi import FastAPI
+from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataDict
-from microservices import microservice_add_model, microservice_generate
+from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
 
 logging.basicConfig(format="%(asctime)s %(message)s",
@@ -42,14 +43,30 @@ def startup():
         db.migrate()
 
 
+@app.on_event("startup")
+@repeat_every(seconds=60)
+async def check_statuses():
+    db.autoremove_old_tokens()
+    groups = db.get_all_groups_status()
+    for group in groups:
+        count = 0
+        wanted_count = len(conf.MICROSERVICES_HOST_NAMES)
+        for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
+            status = microservice_check_status(
+                group.group_id, microservice_host_name)
+            count += status
+        if count == wanted_count:
+            db.update_group_status(group.group_id, 0)
+
+
 @app.post("/verify", response_model=OperationResult)
 async def verify(data: VerifyModel):
     query_dict = data.request
     vk_token = data.vk_token
     if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
         db.add_token(vk_token)
-        return OperationResult(result="Token added")
-    return OperationResult(result="Token is fake")
+        return OperationResult(result="OK")
+    return OperationResult(result="BAD")
 
 
 @app.post("/add_group")
@@ -71,10 +88,3 @@ async def get_groups():
 async def generate(group_id: int, microservice_host_name: str, hint: str = None):
     result = microservice_generate(group_id, microservice_host_name, hint)
     return DataDict(data=result)
-
-
-@app.post("/update_group_status")
-async def update_group_status(data: GroupAndStatusModel):
-    group_id = data.group_id
-    group_status = data.group_status
-    db.update_group_status(group_id, group_status)

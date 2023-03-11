@@ -4,3 +4,4 @@ autopep8
 SQLAlchemy
 PyMySQL
 uvicorn
+fastapi_utils

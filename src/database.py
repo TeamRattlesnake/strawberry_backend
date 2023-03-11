@@ -29,7 +29,7 @@ class Database():
             self.meta,
             Column("id", Integer, primary_key=True, nullable=False),
             Column("group_id", Integer, nullable=False),
-            # 0:ready, 1:generating, 2:not_ready
+            # 0:ready, 1:not_ready
             Column("status_id", Integer, nullable=False),
         )
 
@@ -49,7 +49,7 @@ class Database():
             connection.execute(insert_query)
             connection.commit()
 
-    def autoremove_old_tokens(self, vk_token):
+    def autoremove_old_tokens(self):
         too_old = datetime.datetime.today() - datetime.timedelta(days=1)
         with self.engine.connect() as connection:
             delete_query = delete(self.vk_token_hashes).where(
@@ -70,7 +70,7 @@ class Database():
     def add_group(self, group_id):
         with self.engine.connect() as connection:
             insert_query = insert(self.vk_groups).values(
-                group_id=group_id, status_id=2)
+                group_id=group_id, status_id=1)
             connection.execute(insert_query)
             connection.commit()
 

@@ -11,3 +11,9 @@ def microservice_generate(group_id, service_host_name, hint):
     result = requests.get(f"http://{service_host_name}/generate",
                           params={"group_id": group_id, "hint": hint})
     return result.json()
+
+
+def microservice_check_status(group_id, service_host_name):
+    result = requests.get(
+        f"http://{service_host_name}/check_status", params={"group_id": group_id})
+    return result.json()["result"]
