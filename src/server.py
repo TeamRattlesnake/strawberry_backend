@@ -20,6 +20,8 @@ db = Database(conf.MYSQL_USER, conf.MYSQL_PASSWORD,
               conf.MYSQL_DATABASE, conf.MYSQL_TCP_PORT, conf.MYSQL_HOST)
 
 origins = [
+    "https://localhost:10888",
+    "https://user133207816-tmrqowmv.wormhole.vk-apps.com",
     "https://localhost:14565",
     "http://localhost:14565",
     "https://localhost",
