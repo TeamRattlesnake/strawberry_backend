@@ -7,7 +7,7 @@ from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import EnvironmentConfig
 from database import Database
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel
 from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
 
@@ -89,7 +89,7 @@ async def check_statuses():
             if count == wanted_count:
                 db.update_group_status(group.group_id, 0)
     except Exception as e:
-        logging.info(f"{e}")
+        logging.error(f"{e}")
 
 
 @app.post("/verify", response_model=OperationResult)
@@ -102,7 +102,7 @@ async def verify(data: VerifyModel):
             db.add_token(vk_token)
             return OperationResult(status=0)
         except Exception as e:
-            logging.info(f"{e}")
+            logging.error(f"{e}")
             return OperationResult(status=2)
 
 
@@ -120,7 +120,7 @@ async def add_group(data: GroupAddModel):
             microservice_add_model(microservice_host_name, group_id, texts)
         return OperationResult(status=0)
     except Exception as e:
-        logging.info(f"{e}")
+        logging.error(f"{e}")
         return OperationResult(status=2)
 
 
@@ -132,9 +132,9 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
     if not (group_id is None):
         try:
             result = db.get_group_status(group_id)
-            return GroupAndStatusModelList(status=0, data=result, count=len(result))
+            return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)
         except Exception as e:
-            logging.info(f"{e}")
+            logging.error(f"{e}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
@@ -144,7 +144,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
                 result = result[offset:offset+count]
             return GroupAndStatusModelList(status=0, data=result, count=total_len)
         except Exception as e:
-            logging.info(f"{e}")
+            logging.error(f"{e}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
 
 
@@ -164,7 +164,7 @@ async def generate_text(data: GenerateQueryModel):
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.info(f"{e}")
+        logging.error(f"{e}")
         return DataString(data="", status=2)
 
 
@@ -180,11 +180,11 @@ async def generate_image(data: GenerateQueryModel):
         group_status = db.get_group_status(group_id)
         if group_status == 0:
             #result = microservice_generate(group_id, "image_gen", hint)
-            result = "Текстик"
+            result = "Сгенерированный текст"
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.info(f"{e}")
+        logging.error(f"{e}")
         return DataString(data="", status=2)
 
 
@@ -204,5 +204,5 @@ async def generate_meme_template(data: GenerateQueryModel):
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.info(f"{e}")
+        logging.error(f"{e}")
         return DataString(data="", status=2)
