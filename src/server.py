@@ -59,6 +59,7 @@ app.openapi = custom_openapi
 
 @app.on_event("startup")
 def startup():
+    '''При старте сервера проверить, все ли таблицы на месте и если нет, то создать'''
     if not db.tables_exist():
         db.migrate()
 
@@ -66,6 +67,7 @@ def startup():
 @app.on_event("startup")
 @repeat_every(seconds=60)
 async def check_statuses():
+    '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
     db.autoremove_old_tokens()
     groups = db.get_all_groups_status()
     for group in groups:
@@ -81,6 +83,7 @@ async def check_statuses():
 
 @app.post("/verify", response_model=OperationResult)
 async def verify(data: VerifyModel):
+    '''Добавляет токен в базу данных'''
     query_dict = data.request
     vk_token = data.vk_token
     if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
@@ -94,6 +97,7 @@ async def verify(data: VerifyModel):
 
 @app.post("/add_group", response_model=OperationResult)
 async def add_group(data: GroupAddModel):
+    '''Добавляет айди группы в базу данных и отправляет массив текстов постов этой группы'''
     group_id = data.group_id
     texts = data.texts
     vk_token = data.vk_token
@@ -110,6 +114,7 @@ async def add_group(data: GroupAddModel):
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str):
+    '''Возвращает массив пар айди группы : статус'''
     if not db.is_valid_token(vk_token):
         return GroupAndStatusModelList(custom_code=1, data=[])
     try:
@@ -121,6 +126,7 @@ async def get_groups(vk_token: str):
 
 @app.get("/generate_text", response_model=DataString)
 async def generate_text(group_id: int, vk_token: str, hint: str = None):
+    '''Генерирует текст по описанию hint'''
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:
@@ -132,6 +138,7 @@ async def generate_text(group_id: int, vk_token: str, hint: str = None):
 
 @app.get("/image_get", response_model=DataString)
 async def image_gen(group_id: int, vk_token: str, hint: str = None):
+    '''Генерирует картинку по описанию hint и отправляет ссылку на нее'''
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:
@@ -143,6 +150,7 @@ async def image_gen(group_id: int, vk_token: str, hint: str = None):
 
 @app.get("/generate_meme_template", response_model=DataString)
 async def generate_meme_template(group_id: int, vk_token: str, hint: str = None):
+    '''Ищет шаблон мема по описанию hint и отправляет ссылку на нее'''
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:
