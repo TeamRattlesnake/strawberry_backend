@@ -25,8 +25,8 @@ class GroupAndStatusModelList(BaseModel):
     data: list[GroupAndStatusModel]
 
 
-class DataDict(BaseModel):
-    data: dict
+class DataString(BaseModel):
+    data: str
 
 
 class GenerateModel(BaseModel):

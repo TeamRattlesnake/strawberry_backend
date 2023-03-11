@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi_utils.tasks import repeat_every
 from utils import is_valid
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataDict
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString
 from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
 
@@ -70,29 +70,44 @@ async def verify(data: VerifyModel):
     return OperationResult(result="BAD")
 
 
-@app.post("/add_group")
+@app.post("/add_group", response_model=OperationResult)
 async def add_group(data: GroupAddModel):
     group_id = data.group_id
     texts = data.texts
     vk_token = data.vk_token
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=404, detail="Token is bad")
+        raise HTTPException(status_code=401, detail="Token is bad")
     db.add_group(group_id)
     for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
         microservice_add_model(microservice_host_name, group_id, texts)
+    return OperationResult(result="OK")
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=404, detail="Token is bad")
+        raise HTTPException(status_code=401, detail="Token is bad")
     result = db.get_all_groups_status
     return GroupAndStatusModelList(data=result)
 
 
-@app.get("/generate", response_model=DataDict)
-async def generate(group_id: int, microservice_host_name: str, vk_token : str, hint: str = None):
+@app.get("/generate_text", response_model=DataString)
+async def generate_text(group_id: int, vk_token : str, hint: str = None):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=404, detail="Token is bad")
-    result = microservice_generate(group_id, microservice_host_name, hint)
-    return DataDict(data=result)
+        raise HTTPException(status_code=401, detail="Token is bad")
+    result = microservice_generate(group_id, "text_gen", hint)
+    return DataString(DataString=result)
+
+@app.get("/generate_image", response_model=DataString)
+async def generate_image(group_id: int, vk_token : str, hint: str = None):
+    if not db.is_valid_token(vk_token):
+        raise HTTPException(status_code=401, detail="Token is bad")
+    result = microservice_generate(group_id, "image_gen", hint)
+    return DataString(data=result)
+
+@app.get("/generate_meme_template", response_model=DataString)
+async def generate_meme_template(group_id: int, vk_token : str, hint: str = None):
+    if not db.is_valid_token(vk_token):
+        raise HTTPException(status_code=401, detail="Token is bad")
+    result = microservice_generate(group_id, "meme_template_gen", hint)
+    return DataString(data=result)
