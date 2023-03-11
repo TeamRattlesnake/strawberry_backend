@@ -4,7 +4,7 @@ services:
 
   main_server:
     build:
-      context: ./
+      context: ./main_service
       dockerfile: ./Dockerfile
     depends_on:
       - mariadb
@@ -12,7 +12,7 @@ services:
     ports:
       - 14565:14565
     env_file:
-      - ./config.txt
+      - ./main_service/config.txt
 
   mariadb:
     image: mariadb:latest
@@ -21,4 +21,12 @@ services:
     expose:
       - 3306
     env_file:
-      - ./config.txt
+      - ./main_service/config.txt
+
+  text_gen:
+    build:
+      context: ./text_gen
+      dockerfile: ./Dockerfile
+    restart: always
+    expose:
+      - 14566
