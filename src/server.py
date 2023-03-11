@@ -52,7 +52,7 @@ async def verify(data: VerifyModel):
     return OperationResult(result="Token is fake")
 
 
-@app.post("/add_group", response_model=OperationResult)
+@app.post("/add_group")
 async def add_group(data: GroupAddModel):
     group_id = data.group_id
     texts = data.texts
@@ -71,3 +71,10 @@ async def get_groups():
 async def generate(group_id: int, microservice_host_name: str, hint: str = None):
     result = microservice_generate(group_id, microservice_host_name, hint)
     return DataDict(data=result)
+
+
+@app.post("/update_group_status")
+async def update_group_status(data: GroupAndStatusModel):
+    group_id = data.group_id
+    group_status = data.group_status
+    db.update_group_status(group_id, group_status)
