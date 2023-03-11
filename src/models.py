@@ -25,6 +25,7 @@ class GroupAndStatusModel(BaseModel):
 class GroupAndStatusModelList(BaseModel):
     status: int
     data: list[GroupAndStatusModel]
+    count: int
 
 
 class DataString(BaseModel):

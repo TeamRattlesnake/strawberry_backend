@@ -131,16 +131,17 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
     if not (group_id is None):
         try:
             result = db.get_group_status(group_id)
-            return GroupAndStatusModelList(status=0, data=result)
+            return GroupAndStatusModelList(status=0, data=result, count=len(result))
         except Exception as e:
             logging.info(f"{e}")
             return GroupAndStatusModelList(status=2, data=[])
     else:
         try:
             result = db.get_all_groups_status()
+            total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
-            return GroupAndStatusModelList(status=0, data=result)
+            return GroupAndStatusModelList(status=0, data=result, count=total_len)
         except Exception as e:
             logging.info(f"{e}")
             return GroupAndStatusModelList(status=2, data=[])
