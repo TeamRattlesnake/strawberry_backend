@@ -22,11 +22,3 @@ services:
       - 3306
     env_file:
       - ./main_service/config.txt
-
-  text_gen:
-    build:
-      context: ./text_gen
-      dockerfile: ./Dockerfile
-    restart: always
-    expose:
-      - 14566
