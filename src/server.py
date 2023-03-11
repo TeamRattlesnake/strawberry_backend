@@ -7,7 +7,7 @@ from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import EnvironmentConfig
 from database import Database
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString
 from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
 
@@ -37,19 +37,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+description = """
+Сервис, генерирующий контент для социальной сети ВКонтакте
+
+## Return codes:
+* 0 - ok
+* 1 - token error
+* 2 - internal exception error
+
+"""
 
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="Strawberry",
-        version="0.0.2",
-        description="Сервис, генерирующий контент для социальной сети ВКонтакте",
+        version="0.0.3",
+        description=description,
         routes=app.routes,
     )
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://ih1.redbubble.net/image.1419893148.7415/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg"
-    }
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -89,9 +95,10 @@ async def verify(data: VerifyModel):
     if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
         try:
             db.add_token(vk_token)
-            return OperationResult(custom_code=0)
-        except:
-            return OperationResult(custom_code=2)
+            return OperationResult(status=0)
+        except Exception as e:
+            logging.info("f{e}")
+            return OperationResult(status=2)
 
 
 @app.post("/add_group", response_model=OperationResult)
@@ -101,59 +108,64 @@ async def add_group(data: GroupAddModel):
     texts = data.texts
     vk_token = data.vk_token
     if not db.is_valid_token(vk_token):
-        return OperationResult(custom_code=1)
+        return OperationResult(status=1)
     try:
         db.add_group(group_id)
         for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
             microservice_add_model(microservice_host_name, group_id, texts)
-        return OperationResult(custom_code=0)
-    except:
-        return OperationResult(custom_code=2)
+        return OperationResult(status=0)
+    except Exception as e:
+        logging.info("f{e}")
+        return OperationResult(status=2)
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str):
     '''Возвращает массив пар айди группы : статус'''
     if not db.is_valid_token(vk_token):
-        return GroupAndStatusModelList(custom_code=1, data=[])
+        return GroupAndStatusModelList(status=1, data=[])
     try:
         result = db.get_all_groups_status
-        return GroupAndStatusModelList(custom_code=0, data=result)
-    except:
-        return GroupAndStatusModelList(custom_code=2, data=[])
+        return GroupAndStatusModelList(status=0, data=result)
+    except Exception as e:
+        logging.info("f{e}")
+        return GroupAndStatusModelList(status=2, data=[])
 
 
 @app.get("/generate_text", response_model=DataString)
 async def generate_text(group_id: int, vk_token: str, hint: str = None):
     '''Генерирует текст по описанию hint'''
     if not db.is_valid_token(vk_token):
-        return DataString(data="", custom_code=1)
+        return DataString(data="", status=1)
     try:
         result = microservice_generate(group_id, "text_gen", hint)
-        return DataString(data="", custom_code=0)
-    except:
-        return DataString(data="", custom_code=2)
+        return DataString(data=result, status=0)
+    except Exception as e:
+        logging.info("f{e}")
+        return DataString(data="", status=2)
 
 
 @app.get("/image_get", response_model=DataString)
 async def image_gen(group_id: int, vk_token: str, hint: str = None):
     '''Генерирует картинку по описанию hint и отправляет ссылку на нее'''
     if not db.is_valid_token(vk_token):
-        return DataString(data="", custom_code=1)
+        return DataString(data="", status=1)
     try:
         result = microservice_generate(group_id, "image_get", hint)
-        return DataString(data="", custom_code=0)
-    except:
-        return DataString(data="", custom_code=2)
+        return DataString(data=result, status=0)
+    except Exception as e:
+        logging.info("f{e}")
+        return DataString(data="", status=2)
 
 
 @app.get("/generate_meme_template", response_model=DataString)
 async def generate_meme_template(group_id: int, vk_token: str, hint: str = None):
     '''Ищет шаблон мема по описанию hint и отправляет ссылку на нее'''
     if not db.is_valid_token(vk_token):
-        return DataString(data="", custom_code=1)
+        return DataString(data="", status=1)
     try:
         result = microservice_generate(group_id, "meme_template_gen", hint)
-        return DataString(data="", custom_code=0)
-    except:
-        return DataString(data="", custom_code=2)
+        return DataString(data=result, status=0)
+    except Exception as e:
+        logging.info("f{e}")
+        return DataString(data="", status=2)

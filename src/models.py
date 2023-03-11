@@ -8,7 +8,7 @@ class VerifyModel(BaseModel):
 
 
 class OperationResult(BaseModel):
-    custom_code: str
+    status: int
 
 
 class GroupAddModel(BaseModel):
@@ -23,14 +23,13 @@ class GroupAndStatusModel(BaseModel):
 
 
 class GroupAndStatusModelList(BaseModel):
-    custom_code: str
+    status: int
     data: list[GroupAndStatusModel]
 
 
 class DataString(BaseModel):
     data: str
-    custom_code: str
-
+    status: int
 
 class GenerateModel(BaseModel):
     microservice_host_name: str
