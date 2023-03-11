@@ -124,16 +124,24 @@ async def add_group(data: GroupAddModel):
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
-async def get_groups(vk_token: str):
+async def get_groups(vk_token: str, group_id: int = None):
     '''Возвращает массив пар айди группы : статус'''
     if not db.is_valid_token(vk_token):
         return GroupAndStatusModelList(status=1, data=[])
-    try:
-        result = db.get_all_groups_status
-        return GroupAndStatusModelList(status=0, data=result)
-    except Exception as e:
-        logging.info(f"{e}")
-        return GroupAndStatusModelList(status=2, data=[])
+    if not (group_id is None):
+        try:
+            result = db.get_group_status(group_id)
+            return GroupAndStatusModelList(status=0, data=result)
+        except Exception as e:
+            logging.info(f"{e}")
+            return GroupAndStatusModelList(status=2, data=[])
+    else:
+        try:
+            result = db.get_all_groups_status()
+            return GroupAndStatusModelList(status=0, data=result)
+        except Exception as e:
+            logging.info(f"{e}")
+            return GroupAndStatusModelList(status=2, data=[])
 
 
 @app.get("/generate_text", response_model=DataString)
