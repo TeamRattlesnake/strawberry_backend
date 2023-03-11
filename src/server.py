@@ -2,6 +2,7 @@ import logging
 from fastapi.openapi.utils import get_openapi
 from config import EnvironmentConfig
 from database import Database
+from fastapi import Response
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi_utils.tasks import repeat_every
@@ -66,8 +67,11 @@ async def verify(data: VerifyModel):
     vk_token = data.vk_token
     if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
         db.add_token(vk_token)
-        return OperationResult(result="OK")
-    return OperationResult(result="BAD")
+        return OperationResult(custom_code=0)
+    try:
+        return OperationResult(custom_code=1)
+    except:
+        return OperationResult(custom_code=2)
 
 
 @app.post("/add_group", response_model=OperationResult)
@@ -76,38 +80,53 @@ async def add_group(data: GroupAddModel):
     texts = data.texts
     vk_token = data.vk_token
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=401, detail="Token is bad")
-    db.add_group(group_id)
-    for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
-        microservice_add_model(microservice_host_name, group_id, texts)
-    return OperationResult(result="OK")
-
+        return OperationResult(custom_code=1)
+    try:
+        db.add_group(group_id)
+        for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
+            microservice_add_model(microservice_host_name, group_id, texts)
+        return OperationResult(custom_code=0)
+    except:
+        return OperationResult(custom_code=2)
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=401, detail="Token is bad")
-    result = db.get_all_groups_status
-    return GroupAndStatusModelList(data=result)
+        return GroupAndStatusModelList(custom_code=1, data=[])
+    try:
+        result = db.get_all_groups_status
+        return GroupAndStatusModelList(custom_code=0, data=result)
+    except:
+        return GroupAndStatusModelList(custom_code=2, data=[])
 
 
 @app.get("/generate_text", response_model=DataString)
 async def generate_text(group_id: int, vk_token : str, hint: str = None):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=401, detail="Token is bad")
-    result = microservice_generate(group_id, "text_gen", hint)
-    return DataString(DataString=result)
+        return DataString(data="", custom_code=1)
+    try:
+        result = microservice_generate(group_id, "text_gen", hint)
+        return DataString(data="", custom_code=0)
+    except:
+        return DataString(data="", custom_code=2)
 
-@app.get("/generate_image", response_model=DataString)
-async def generate_image(group_id: int, vk_token : str, hint: str = None):
+@app.get("/image_get", response_model=DataString)
+async def image_gen(group_id: int, vk_token : str, hint: str = None):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=401, detail="Token is bad")
-    result = microservice_generate(group_id, "image_gen", hint)
-    return DataString(data=result)
+        return DataString(data="", custom_code=1)
+    try:
+        result = microservice_generate(group_id, "image_get", hint)
+        return DataString(data="", custom_code=0)
+    except:
+        return DataString(data="", custom_code=2)
+
 
 @app.get("/generate_meme_template", response_model=DataString)
 async def generate_meme_template(group_id: int, vk_token : str, hint: str = None):
     if not db.is_valid_token(vk_token):
-        raise HTTPException(status_code=401, detail="Token is bad")
-    result = microservice_generate(group_id, "meme_template_gen", hint)
-    return DataString(data=result)
+        return DataString(data="", custom_code=1)
+    try:
+        result = microservice_generate(group_id, "meme_template_gen", hint)
+        return DataString(data="", custom_code=0)
+    except:
+        return DataString(data="", custom_code=2)

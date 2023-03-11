@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from fastapi import Response
 
 class VerifyModel(BaseModel):
     request: dict
@@ -7,7 +7,7 @@ class VerifyModel(BaseModel):
 
 
 class OperationResult(BaseModel):
-    result: str
+    custom_code: str
 
 
 class GroupAddModel(BaseModel):
@@ -22,11 +22,13 @@ class GroupAndStatusModel(BaseModel):
 
 
 class GroupAndStatusModelList(BaseModel):
+    custom_code: str
     data: list[GroupAndStatusModel]
 
 
 class DataString(BaseModel):
     data: str
+    custom_code: str
 
 
 class GenerateModel(BaseModel):
