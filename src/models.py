@@ -31,6 +31,7 @@ class DataString(BaseModel):
     data: str
     status: int
 
+
 class GenerateModel(BaseModel):
     microservice_host_name: str
     hint: str

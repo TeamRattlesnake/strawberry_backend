@@ -1,8 +1,5 @@
 import datetime
-import sqlalchemy
 from sqlalchemy import create_engine, Table, Column, Integer, String, DateTime, MetaData, inspect, select, delete, update, insert
-from sqlalchemy.sql import func
-from hashlib import sha256
 from utils import make_sha256
 from models import GroupAndStatusModel
 
@@ -47,7 +44,7 @@ class Database():
             insert_query = insert(self.vk_token_hashes).values(
                 vk_token_hash=vk_token_hash)
             connection.execute(insert_query)
-            connection.commit()
+            # connection.commit()
 
     def autoremove_old_tokens(self):
         too_old = datetime.datetime.today() - datetime.timedelta(days=1)
@@ -55,7 +52,7 @@ class Database():
             delete_query = delete(self.vk_token_hashes).where(
                 self.vk_token_hashes.c.acquired <= too_old)
             connection.execute(delete_query)
-            connection.commit()
+            # connection.commit()
 
     def is_valid_token(self, vk_token):
         vk_token_hash = make_sha256(vk_token)
@@ -72,14 +69,14 @@ class Database():
             insert_query = insert(self.vk_groups).values(
                 group_id=group_id, status_id=1)
             connection.execute(insert_query)
-            connection.commit()
+            # connection.commit()
 
     def update_group_status(self, group_id, status):
         with self.engine.connect() as connection:
             update_query = update(self.vk_groups).where(
                 self.vk_groups.c.group_id == group_id).values(status=status)
             connection.execute(update_query)
-            connection.commit()
+            # connection.commit()
 
     def get_group_status(self, group_id):
         with self.engine.connect() as connection:

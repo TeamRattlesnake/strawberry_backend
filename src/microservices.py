@@ -10,7 +10,7 @@ def microservice_add_model(service_host_name, group_id, texts):
 def microservice_generate(group_id, service_host_name, hint):
     result = requests.get(f"http://{service_host_name}/generate",
                           params={"group_id": group_id, "hint": hint})
-    return result.json()["result"]
+    return result.json()["data"]
 
 
 def microservice_check_status(group_id, service_host_name):

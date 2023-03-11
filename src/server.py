@@ -47,6 +47,7 @@ description = """
 
 """
 
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -74,17 +75,20 @@ def startup():
 @repeat_every(seconds=60)
 async def check_statuses():
     '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
-    db.autoremove_old_tokens()
-    groups = db.get_all_groups_status()
-    for group in groups:
-        count = 0
-        wanted_count = len(conf.MICROSERVICES_HOST_NAMES)
-        for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
-            status = microservice_check_status(
-                group.group_id, microservice_host_name)
-            count += status
-        if count == wanted_count:
-            db.update_group_status(group.group_id, 0)
+    try:
+        db.autoremove_old_tokens()
+        groups = db.get_all_groups_status()
+        for group in groups:
+            count = 0
+            wanted_count = len(conf.MICROSERVICES_HOST_NAMES)
+            for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
+                status = microservice_check_status(
+                    group.group_id, microservice_host_name)
+                count += status
+            if count == wanted_count:
+                db.update_group_status(group.group_id, 0)
+    except Exception as e:
+        logging.info(f"{e}")
 
 
 @app.post("/verify", response_model=OperationResult)
