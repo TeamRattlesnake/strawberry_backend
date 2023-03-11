@@ -1,12 +1,12 @@
 import logging
 from fastapi.openapi.utils import get_openapi
-from config import EnvironmentConfig
-from database import Database
 from fastapi import Response
 from fastapi import FastAPI
-from fastapi import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
 from utils import is_valid
+from config import EnvironmentConfig
+from database import Database
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString
 from microservices import microservice_add_model, microservice_generate, microservice_check_status
 
@@ -19,13 +19,29 @@ app = FastAPI()
 db = Database(conf.MYSQL_USER, conf.MYSQL_PASSWORD,
               conf.MYSQL_DATABASE, conf.MYSQL_TCP_PORT, conf.MYSQL_HOST)
 
+origins = [
+    "https://localhost:14565",
+    "http://localhost:14565",
+    "https://localhost",
+    "http://localhost",
+    "https://vk.com"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="Strawberry",
-        version="0.0.1",
+        version="0.0.2",
         description="Сервис, генерирующий контент для социальной сети ВКонтакте",
         routes=app.routes,
     )
@@ -89,6 +105,7 @@ async def add_group(data: GroupAddModel):
     except:
         return OperationResult(custom_code=2)
 
+
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str):
     if not db.is_valid_token(vk_token):
@@ -101,7 +118,7 @@ async def get_groups(vk_token: str):
 
 
 @app.get("/generate_text", response_model=DataString)
-async def generate_text(group_id: int, vk_token : str, hint: str = None):
+async def generate_text(group_id: int, vk_token: str, hint: str = None):
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:
@@ -110,8 +127,9 @@ async def generate_text(group_id: int, vk_token : str, hint: str = None):
     except:
         return DataString(data="", custom_code=2)
 
+
 @app.get("/image_get", response_model=DataString)
-async def image_gen(group_id: int, vk_token : str, hint: str = None):
+async def image_gen(group_id: int, vk_token: str, hint: str = None):
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:
@@ -122,7 +140,7 @@ async def image_gen(group_id: int, vk_token : str, hint: str = None):
 
 
 @app.get("/generate_meme_template", response_model=DataString)
-async def generate_meme_template(group_id: int, vk_token : str, hint: str = None):
+async def generate_meme_template(group_id: int, vk_token: str, hint: str = None):
     if not db.is_valid_token(vk_token):
         return DataString(data="", custom_code=1)
     try:

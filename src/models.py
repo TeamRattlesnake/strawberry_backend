@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from fastapi import Response
 
+
 class VerifyModel(BaseModel):
     request: dict
     vk_token: str
