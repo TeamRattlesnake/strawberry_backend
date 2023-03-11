@@ -97,7 +97,7 @@ async def verify(data: VerifyModel):
             db.add_token(vk_token)
             return OperationResult(status=0)
         except Exception as e:
-            logging.info("f{e}")
+            logging.info(f"{e}")
             return OperationResult(status=2)
 
 
@@ -115,7 +115,7 @@ async def add_group(data: GroupAddModel):
             microservice_add_model(microservice_host_name, group_id, texts)
         return OperationResult(status=0)
     except Exception as e:
-        logging.info("f{e}")
+        logging.info(f"{e}")
         return OperationResult(status=2)
 
 
@@ -128,7 +128,7 @@ async def get_groups(vk_token: str):
         result = db.get_all_groups_status
         return GroupAndStatusModelList(status=0, data=result)
     except Exception as e:
-        logging.info("f{e}")
+        logging.info(f"{e}")
         return GroupAndStatusModelList(status=2, data=[])
 
 
@@ -141,7 +141,7 @@ async def generate_text(group_id: int, vk_token: str, hint: str = None):
         result = microservice_generate(group_id, "text_gen", hint)
         return DataString(data=result, status=0)
     except Exception as e:
-        logging.info("f{e}")
+        logging.info(f"{e}")
         return DataString(data="", status=2)
 
 
@@ -154,7 +154,7 @@ async def image_gen(group_id: int, vk_token: str, hint: str = None):
         result = microservice_generate(group_id, "image_get", hint)
         return DataString(data=result, status=0)
     except Exception as e:
-        logging.info("f{e}")
+        logging.info(f"{e}")
         return DataString(data="", status=2)
 
 
@@ -167,5 +167,5 @@ async def generate_meme_template(group_id: int, vk_token: str, hint: str = None)
         result = microservice_generate(group_id, "meme_template_gen", hint)
         return DataString(data=result, status=0)
     except Exception as e:
-        logging.info("f{e}")
+        logging.info(f"{e}")
         return DataString(data="", status=2)
