@@ -44,6 +44,7 @@ description = """
 * 0 - ok
 * 1 - token error
 * 2 - internal exception error
+* 3 - neural network is not ready
 
 """
 
@@ -156,9 +157,12 @@ async def generate_text(data: GenerateQueryModel):
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
-        #result = microservice_generate(group_id, "text_gen", hint)
-        result = "Текстик"
-        return DataString(data=result, status=0)
+        group_status = db.get_group_status(group_id)
+        if group_status == 0:
+            #result = microservice_generate(group_id, "text_gen", hint)
+            result = "Текстик"
+            return DataString(data=result, status=0)
+        return DataString(data="", status=3)
     except Exception as e:
         logging.info(f"{e}")
         return DataString(data="", status=2)
@@ -173,8 +177,12 @@ async def generate_image(data: GenerateQueryModel):
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
-        result = microservice_generate(group_id, "image_get", hint)
-        return DataString(data=result, status=0)
+        group_status = db.get_group_status(group_id)
+        if group_status == 0:
+            #result = microservice_generate(group_id, "image_gen", hint)
+            result = "Текстик"
+            return DataString(data=result, status=0)
+        return DataString(data="", status=3)
     except Exception as e:
         logging.info(f"{e}")
         return DataString(data="", status=2)
@@ -189,8 +197,12 @@ async def generate_meme_template(data: GenerateQueryModel):
     if not db.is_valid_token(vk_token):
         return DataString(data="", status=1)
     try:
-        result = microservice_generate(group_id, "meme_template_gen", hint)
-        return DataString(data=result, status=0)
+        group_status = db.get_group_status(group_id)
+        if group_status == 0:
+            #result = microservice_generate(group_id, "meme_template_gen", hint)
+            result = "Текстик"
+            return DataString(data=result, status=0)
+        return DataString(data="", status=3)
     except Exception as e:
         logging.info(f"{e}")
         return DataString(data="", status=2)
