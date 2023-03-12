@@ -8,6 +8,7 @@ class Database():
 
     def __init__(self, user, password, database, port, host):
         self.database_uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}?charset=utf8mb4"
+        print(self.database_uri)
         self.engine = create_engine(self.database_uri)
 
         self.meta = MetaData()
@@ -74,7 +75,7 @@ class Database():
     def update_group_status(self, group_id, status):
         with self.engine.connect() as connection:
             update_query = update(self.vk_groups).where(
-                self.vk_groups.c.group_id == group_id).values(status=status)
+                self.vk_groups.c.group_id == group_id).values(status_id=status)
             connection.execute(update_query)
             # connection.commit()
 
@@ -86,7 +87,7 @@ class Database():
             status = result[0][2]
             return status
 
-    def get_all_groups_status(self):
+    def get_all_groups(self):
         with self.engine.connect() as connection:
             select_query = select(self.vk_groups)
             result = connection.execute(select_query).fetchall()

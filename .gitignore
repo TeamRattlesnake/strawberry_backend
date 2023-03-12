@@ -1,3 +1,4 @@
-config.txt
+main_service/config.json
+main_service/config_maker.py
 mariadb
-src/__pycache__
+main_service/src/__pycache__

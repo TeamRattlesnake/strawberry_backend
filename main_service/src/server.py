@@ -1,25 +1,25 @@
 import logging
 from fastapi.openapi.utils import get_openapi
-from fastapi import Response
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
 from utils import is_valid
-from config import EnvironmentConfig
+from config import Config
 from database import Database
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel
-from microservices import microservice_add_model, microservice_generate, microservice_check_status
+from microservices import MicroserviceManager
 
 
 logging.basicConfig(format="%(asctime)s %(message)s",
                     datefmt="%I:%M:%S %p", level=logging.INFO)
 
-conf = EnvironmentConfig()
+conf = Config("/home/config.json")
 app = FastAPI()
-db = Database(conf.MYSQL_USER, conf.MYSQL_PASSWORD,
-              conf.MYSQL_DATABASE, conf.MYSQL_TCP_PORT, conf.MYSQL_HOST)
+db = Database(conf.db_user, conf.db_password,
+              conf.db_db, conf.db_port, conf.db_host)
+mmgr = MicroserviceManager(conf.services)
 
-origins = [
+ORIGINS = [
     "https://localhost:10888",
     "https://user133207816-tmrqowmv.wormhole.vk-apps.com",
     "https://localhost:14565",
@@ -31,13 +31,13 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-description = """
+DESCRIPTION = """
 Сервис, генерирующий контент для социальной сети ВКонтакте
 
 ## Return codes:
@@ -54,8 +54,8 @@ def custom_openapi():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="Strawberry",
-        version="0.0.3",
-        description=description,
+        version="0.0.5",
+        description=DESCRIPTION,
         routes=app.routes,
     )
     app.openapi_schema = openapi_schema
@@ -68,6 +68,7 @@ app.openapi = custom_openapi
 @app.on_event("startup")
 def startup():
     '''При старте сервера проверить, все ли таблицы на месте и если нет, то создать'''
+    logging.info(f"Server started with config: {conf.raw_data}")
     if not db.tables_exist():
         db.migrate()
 
@@ -77,19 +78,19 @@ def startup():
 async def check_statuses():
     '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
     try:
+        logging.info(f"Deleting old tokens...")
         db.autoremove_old_tokens()
-        groups = db.get_all_groups_status()
+        logging.info(f"Deleting old tokens...\tOK")
+        logging.info(f"Updating groups statuses...")
+        groups = db.get_all_groups()
         for group in groups:
-            count = 0
-            wanted_count = len(conf.MICROSERVICES_HOST_NAMES)
-            for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
-                status = microservice_check_status(
-                    group.group_id, microservice_host_name)
-                count += status
-            if count == wanted_count:
+            if mmgr.check_status(group.group_id):
                 db.update_group_status(group.group_id, 0)
+            else:
+                db.update_group_status(group.group_id, 3)
+        logging.info(f"Updating groups statuses...\tOK")
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error(f"ERROR: {e}")
 
 
 @app.post("/verify", response_model=OperationResult)
@@ -97,12 +98,12 @@ async def verify(data: VerifyModel):
     '''Добавляет токен в базу данных'''
     query_dict = data.request
     vk_token = data.vk_token
-    if is_valid(query=query_dict, secret=conf.CLIENT_SECRET):
+    if is_valid(query=query_dict, secret=conf.client_secret):
         try:
             db.add_token(vk_token)
             return OperationResult(status=0)
         except Exception as e:
-            logging.error(f"{e}")
+            logging.error(f"ERROR: {e}")
             return OperationResult(status=2)
 
 
@@ -116,11 +117,10 @@ async def add_group(data: GroupAddModel):
         return OperationResult(status=1)
     try:
         db.add_group(group_id)
-        for microservice_host_name in conf.MICROSERVICES_HOST_NAMES:
-            microservice_add_model(microservice_host_name, group_id, texts)
+        mmgr.add_group(group_id, texts)
         return OperationResult(status=0)
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error(f"ERROR: {e}")
         return OperationResult(status=2)
 
 
@@ -134,17 +134,17 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             result = db.get_group_status(group_id)
             return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)
         except Exception as e:
-            logging.error(f"{e}")
+            logging.error(f"ERROR: {e}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
-            result = db.get_all_groups_status()
+            result = db.get_all_groups()
             total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
             return GroupAndStatusModelList(status=0, data=result, count=total_len)
         except Exception as e:
-            logging.error(f"{e}")
+            logging.error(f"ERROR: {e}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
 
 
@@ -159,12 +159,11 @@ async def generate_text(data: GenerateQueryModel):
     try:
         group_status = db.get_group_status(group_id)
         if group_status == 0:
-            #result = microservice_generate(group_id, "text_gen", hint)
-            result = "Текстик"
+            result = mmgr.generate("text_gen", group_id, hint)
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error(f"ERROR: {e}")
         return DataString(data="", status=2)
 
 
@@ -179,12 +178,11 @@ async def generate_image(data: GenerateQueryModel):
     try:
         group_status = db.get_group_status(group_id)
         if group_status == 0:
-            #result = microservice_generate(group_id, "image_gen", hint)
-            result = "Сгенерированный текст"
+            result = mmgr.generate("image_gen", group_id, hint)
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error(f"ERROR: {e}")
         return DataString(data="", status=2)
 
 
@@ -199,10 +197,9 @@ async def generate_meme_template(data: GenerateQueryModel):
     try:
         group_status = db.get_group_status(group_id)
         if group_status == 0:
-            #result = microservice_generate(group_id, "meme_template_gen", hint)
-            result = "Текстик"
+            result = mmgr.generate("meme_template_gen", group_id, hint)
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
     except Exception as e:
-        logging.error(f"{e}")
+        logging.error(f"ERROR: {e}")
         return DataString(data="", status=2)
