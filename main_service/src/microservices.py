@@ -24,7 +24,7 @@ class MicroserviceManager:
             response = requests.get(
                 f"{service.url}:{service.port}/check_status", params={"group_id": group_id})
             result = response.json()["result"]
-            if result == "ready":
+            if result == "OK":
                 ready_count += 1
         if ready_count == total_count:
             return True
