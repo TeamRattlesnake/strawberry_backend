@@ -129,7 +129,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
     '''Возвращает массив пар айди группы : статус'''
     if not db.is_valid_token(vk_token):
         return GroupAndStatusModelList(status=1, data=[], count=0)
-    if not (group_id is None):
+    if not group_id is None:
         try:
             result = db.get_group_status(group_id)
             return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)

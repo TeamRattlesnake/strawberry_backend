@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from fastapi import Response
 
 
 class VerifyModel(BaseModel):
