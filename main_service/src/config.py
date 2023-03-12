@@ -21,4 +21,5 @@ class Config:
             self.db_port = self.raw_data["db_port"]
             self.db_host = self.raw_data["db_host"]
             self.db_db = self.raw_data["db_db"]
-            self.services = [MicroserviceData(data) for data in self.raw_data["services"]]
+            self.services = [MicroserviceData(data)
+                             for data in self.raw_data["services"]]
