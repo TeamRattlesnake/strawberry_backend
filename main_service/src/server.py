@@ -27,6 +27,7 @@ origins = [
     "https://localhost",
     "http://localhost",
     "https://vk.com",
+    "*",
 ]
 
 app.add_middleware(
