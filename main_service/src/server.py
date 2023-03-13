@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import Config
-from database import Database
-from microservices import MicroserviceManager
+from database import Database, DBException
+from microservices import MicroserviceManager, MicroserviceException
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
 
 
@@ -41,11 +41,13 @@ app.add_middleware(
 DESCRIPTION = """
 Сервис, генерирующий контент для социальной сети ВКонтакте
 
-## Return codes:
+# Return codes:
 * 0 - ok
 * 1 - token error
-* 2 - internal exception error
+* 2 - unknown internal exception error
 * 3 - neural network is not ready
+* 4 - microservice error
+* 5 - db error
 
 """
 
@@ -72,28 +74,35 @@ def startup():
     logging.info(f"Server started with config: {conf.raw_data}")
     try:
         if not db.tables_exist():
-            logging.info(f"Creating tables...")
+            logging.info("Creating tables...")
             db.migrate()
-            logging.info(f"Creating tables...\tOK")
-    except:
+            logging.info("Creating tables...\tOK")
+    except DBException as exc:
         logging.info(
-            f"Cannot connect to database, maybe it is still booting...")
+            "Cannot connect to database, maybe it is still booting...")
+        raise Exception(
+            "Rebooting and hoping database will be online...") from exc
+
 
 @app.on_event("startup")
 @repeat_every(seconds=60)
 async def check_statuses():
     '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
     try:
-        logging.info(f"Updating groups statuses...")
+        logging.info("Updating groups statuses...")
         groups = db.get_all_groups()
         for group in groups:
             if mmgr.check_status(group.group_id):
                 db.update_group_status(group.group_id, 0)
             else:
                 db.update_group_status(group.group_id, 3)
-        logging.info(f"Updating groups statuses...\tOK")
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
+        logging.info("Updating groups statuses...\tOK")
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+    except MicroserviceException as exc:
+        logging.error(f"MICROSERVICE ERROR: {exc}")
+    except Exception as exc:
+        logging.error(f"ERROR: {exc}")
 
 
 @app.post("/verify", response_model=OperationResult)
@@ -105,8 +114,11 @@ async def verify(data: VerifyModel):
         try:
             db.add_token(vk_token)
             return OperationResult(status=0)
-        except Exception as e:
-            logging.error(f"ERROR: {e}")
+        except DBException as exc:
+            logging.error(f"DB ERROR: {exc}")
+            return OperationResult(status=5)
+        except Exception as exc:
+            logging.error(f"ERROR: {exc}")
             return OperationResult(status=2)
 
 
@@ -120,8 +132,11 @@ async def renew(data: RenewModel):
     try:
         db.update_token(old_vk_token, new_vk_token)
         return OperationResult(status=0)
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        return OperationResult(status=5)
+    except Exception as exc:
+        logging.error(f"ERROR: {exc}")
         return OperationResult(status=2)
 
 
@@ -137,22 +152,35 @@ async def add_group(data: GroupAddModel):
         db.add_group(group_id, vk_token)
         mmgr.add_group(group_id, texts)
         return OperationResult(status=0)
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
+    except MicroserviceException as exc:
+        logging.error(f"MICROSERVICE ERROR: {exc}")
+        return OperationResult(status=4)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        return OperationResult(status=5)
+    except Exception as exc:
+        logging.error(f"ERROR: {exc}")
         return OperationResult(status=2)
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str, group_id: int = None, offset: int = None, count: int = None):
     '''Возвращает массив пар айди группы : статус'''
-    if not db.is_valid_token(vk_token):
-        return GroupAndStatusModelList(status=1, data=[], count=0)
+    try:
+        if not db.is_valid_token(vk_token):
+            return GroupAndStatusModelList(status=1, data=[], count=0)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        OperationResult(status=5)
     if not group_id is None:
         try:
             result = db.get_group_status(group_id)
             return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)
-        except Exception as e:
-            logging.error(f"ERROR: {e}")
+        except DBException as exc:
+            logging.error(f"DB ERROR: {exc}")
+            OperationResult(status=5)
+        except Exception as exc:
+            logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
@@ -161,8 +189,11 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
             return GroupAndStatusModelList(status=0, data=result, count=total_len)
-        except Exception as e:
-            logging.error(f"ERROR: {e}")
+        except DBException as exc:
+            logging.error(f"DB ERROR: {exc}")
+            OperationResult(status=5)
+        except Exception as exc:
+            logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
 
 
@@ -172,52 +203,25 @@ async def generate_text(data: GenerateQueryModel):
     group_id = data.group_id
     vk_token = data.vk_token
     hint = data.hint
-    if not db.is_valid_token(vk_token):
-        return DataString(data="", status=1)
+    try:
+        if not db.is_valid_token(vk_token):
+            return DataString(data="", status=1)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        OperationResult(status=5)
+
     try:
         group_status = db.get_group_status(group_id)
         if group_status == 0:
             result = mmgr.generate("text_gen", group_id, hint)
             return DataString(data=result, status=0)
         return DataString(data="", status=3)
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
-        return DataString(data="", status=2)
-
-
-@app.post("/generate_image", response_model=DataString)
-async def generate_image(data: GenerateQueryModel):
-    '''Генерирует картинку по описанию hint и отправляет ссылку на нее'''
-    group_id = data.group_id
-    vk_token = data.vk_token
-    hint = data.hint
-    if not db.is_valid_token(vk_token):
-        return DataString(data="", status=1)
-    try:
-        group_status = db.get_group_status(group_id)
-        if group_status == 0:
-            result = mmgr.generate("image_gen", group_id, hint)
-            return DataString(data=result, status=0)
-        return DataString(data="", status=3)
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
-        return DataString(data="", status=2)
-
-
-@app.post("/generate_meme_template", response_model=DataString)
-async def generate_meme_template(data: GenerateQueryModel):
-    '''Ищет шаблон мема по описанию hint и отправляет ссылку на нее'''
-    group_id = data.group_id
-    vk_token = data.vk_token
-    hint = data.hint
-    if not db.is_valid_token(vk_token):
-        return DataString(data="", status=1)
-    try:
-        group_status = db.get_group_status(group_id)
-        if group_status == 0:
-            result = mmgr.generate("meme_template_gen", group_id, hint)
-            return DataString(data=result, status=0)
-        return DataString(data="", status=3)
-    except Exception as e:
-        logging.error(f"ERROR: {e}")
+    except MicroserviceException as exc:
+        logging.error(f"MICROSERVICE ERROR: {exc}")
+        return OperationResult(status=4)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        return OperationResult(status=5)
+    except Exception as exc:
+        logging.error(f"ERROR: {exc}")
         return DataString(data="", status=2)
