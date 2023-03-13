@@ -6,6 +6,11 @@ class VerifyModel(BaseModel):
     vk_token: str
 
 
+class RenewModel(BaseModel):
+    old_vk_token: str
+    new_vk_token: str
+
+
 class OperationResult(BaseModel):
     status: int
 
