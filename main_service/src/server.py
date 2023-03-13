@@ -171,14 +171,14 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             return GroupAndStatusModelList(status=1, data=[], count=0)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
-        OperationResult(status=5)
+        return GroupAndStatusModelList(status=5, data=[], count=0)
     if not group_id is None:
         try:
             result = db.get_group_status(group_id)
             return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)
         except DBException as exc:
             logging.error(f"DB ERROR: {exc}")
-            OperationResult(status=5)
+            return GroupAndStatusModelList(status=5, data=[], count=0)
         except Exception as exc:
             logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
@@ -191,7 +191,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             return GroupAndStatusModelList(status=0, data=result, count=total_len)
         except DBException as exc:
             logging.error(f"DB ERROR: {exc}")
-            OperationResult(status=5)
+            return GroupAndStatusModelList(status=5, data=[], count=0)
         except Exception as exc:
             logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
@@ -208,7 +208,7 @@ async def generate_text(data: GenerateQueryModel):
             return DataString(data="", status=1)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
-        OperationResult(status=5)
+        return DataString(data="", status=5)
 
     try:
         group_status = db.get_group_status(group_id)
@@ -218,10 +218,10 @@ async def generate_text(data: GenerateQueryModel):
         return DataString(data="", status=3)
     except MicroserviceException as exc:
         logging.error(f"MICROSERVICE ERROR: {exc}")
-        return OperationResult(status=4)
+        return DataString(data="", status=4)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
-        return OperationResult(status=5)
+        return DataString(data="", status=5)
     except Exception as exc:
         logging.error(f"ERROR: {exc}")
         return DataString(data="", status=2)
