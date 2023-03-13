@@ -6,7 +6,7 @@ from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import Config
 from database import Database
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
 from microservices import MicroserviceManager
 
 
@@ -69,18 +69,20 @@ app.openapi = custom_openapi
 def startup():
     '''При старте сервера проверить, все ли таблицы на месте и если нет, то создать'''
     logging.info(f"Server started with config: {conf.raw_data}")
-    if not db.tables_exist():
-        db.migrate()
-
+    try:
+        if not db.tables_exist():
+            logging.info(f"Creating tables...")
+            db.migrate()
+            logging.info(f"Creating tables...\tOK")
+    except:
+        logging.info(
+            f"Cannot connect to database, maybe it is still booting...")
 
 @app.on_event("startup")
 @repeat_every(seconds=60)
 async def check_statuses():
     '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
     try:
-        logging.info(f"Deleting old tokens...")
-        db.autoremove_old_tokens()
-        logging.info(f"Deleting old tokens...\tOK")
         logging.info(f"Updating groups statuses...")
         groups = db.get_all_groups()
         for group in groups:
@@ -107,6 +109,21 @@ async def verify(data: VerifyModel):
             return OperationResult(status=2)
 
 
+@app.post("/renew", response_model=OperationResult)
+async def renew(data: RenewModel):
+    '''Заменяет старый токен на новый'''
+    old_vk_token = data.old_vk_token
+    new_vk_token = data.new_vk_token
+    if not db.is_valid_token(old_vk_token):
+        return OperationResult(status=1)
+    try:
+        db.update_token(old_vk_token, new_vk_token)
+        return OperationResult(status=0)
+    except Exception as e:
+        logging.error(f"ERROR: {e}")
+        return OperationResult(status=2)
+
+
 @app.post("/add_group", response_model=OperationResult)
 async def add_group(data: GroupAddModel):
     '''Добавляет айди группы в базу данных и отправляет массив текстов постов этой группы'''
@@ -116,7 +133,7 @@ async def add_group(data: GroupAddModel):
     if not db.is_valid_token(vk_token):
         return OperationResult(status=1)
     try:
-        db.add_group(group_id)
+        db.add_group(group_id, vk_token)
         mmgr.add_group(group_id, texts)
         return OperationResult(status=0)
     except Exception as e:
@@ -138,7 +155,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
-            result = db.get_all_groups()
+            result = db.get_owned_groups(vk_token)
             total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
