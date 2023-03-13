@@ -6,8 +6,8 @@ from fastapi_utils.tasks import repeat_every
 from utils import is_valid
 from config import Config
 from database import Database
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
 from microservices import MicroserviceManager
+from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
 
 
 logging.basicConfig(format="%(asctime)s %(message)s",
@@ -19,7 +19,7 @@ db = Database(conf.db_user, conf.db_password,
               conf.db_db, conf.db_port, conf.db_host)
 mmgr = MicroserviceManager(conf.services)
 
-ORIGINS = [
+origins = [
     "https://localhost:10888",
     "https://user133207816-tmrqowmv.wormhole.vk-apps.com",
     "https://localhost:14565",
@@ -31,7 +31,7 @@ ORIGINS = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ORIGINS,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
