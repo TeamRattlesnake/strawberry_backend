@@ -105,9 +105,16 @@ class Database():
         try:
             vk_token_hash = make_sha256(vk_token)
             with self.engine.connect() as connection:
-                insert_group_query = insert(self.vk_groups).values(
-                    group_id=group_id, status_id=1)
-                connection.execute(insert_group_query)
+
+                select_group_count_query = select(self.vk_groups.c.id).where(
+                    self.vk_groups.c.group_id == group_id)
+                count = len(connection.execute(
+                    select_group_count_query).fetchall())
+
+                if count == 0:
+                    insert_group_query = insert(self.vk_groups).values(
+                        group_id=group_id, status_id=1)
+                    connection.execute(insert_group_query)
 
                 select_group_id_query = select(self.vk_groups.c.id).where(
                     self.vk_groups.c.group_id == group_id)

@@ -111,6 +111,7 @@ async def verify(data: VerifyModel):
     '''Добавляет токен в базу данных'''
     query_dict = data.request
     vk_token = data.vk_token
+    logging.info("/verify")
     if is_valid(query=query_dict, secret=conf.client_secret):
         try:
             db.add_token(vk_token)
@@ -128,6 +129,7 @@ async def renew(data: RenewModel):
     '''Заменяет старый токен на новый'''
     old_vk_token = data.old_vk_token
     new_vk_token = data.new_vk_token
+    logging.info("/renew")
     if not db.is_valid_token(old_vk_token):
         return OperationResult(status=1)
     try:
@@ -147,6 +149,7 @@ async def add_group(data: GroupAddModel):
     group_id = data.group_id
     texts = data.texts
     vk_token = data.vk_token
+    logging.info("/add_group")
     if not db.is_valid_token(vk_token):
         return OperationResult(status=1)
     try:
@@ -167,6 +170,7 @@ async def add_group(data: GroupAddModel):
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str, group_id: int = None, offset: int = None, count: int = None):
     '''Возвращает массив пар айди группы : статус'''
+    logging.info("/get_groups")
     try:
         if not db.is_valid_token(vk_token):
             return GroupAndStatusModelList(status=1, data=[], count=0)
@@ -204,6 +208,7 @@ async def generate_text(data: GenerateQueryModel):
     group_id = data.group_id
     vk_token = data.vk_token
     hint = data.hint
+    logging.info("/generate_text")
     try:
         if not db.is_valid_token(vk_token):
             return DataString(data="", status=1)
