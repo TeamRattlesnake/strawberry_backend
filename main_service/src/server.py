@@ -10,8 +10,9 @@ from microservices import MicroserviceManager, MicroserviceException
 from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
 
 
-logging.basicConfig(format="%(asctime)s %(message)s",
-                    datefmt="%I:%M:%S %p", level=logging.INFO)
+logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
+    "/home/logs/log.txt", mode="a")], datefmt="%I:%M:%S %p", level=logging.INFO)
+
 
 conf = Config("/home/config.json")
 app = FastAPI()
