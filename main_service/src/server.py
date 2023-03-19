@@ -41,15 +41,6 @@ app.add_middleware(
 
 DESCRIPTION = """
 Сервис, генерирующий контент для социальной сети ВКонтакте
-
-# Return codes:
-* 0 - ok
-* 1 - token error
-* 2 - unknown internal exception error
-* 3 - neural network is not ready
-* 4 - microservice error
-* 5 - db error
-
 """
 
 
@@ -72,7 +63,7 @@ app.openapi = custom_openapi
 @app.on_event("startup")
 def startup():
     '''При старте сервера проверить, все ли таблицы на месте и если нет, то создать'''
-    logging.info(f"Server started with config: {conf.raw_data}")
+    logging.info("Server started")
     try:
         if not db.tables_exist():
             logging.info("Creating tables...")

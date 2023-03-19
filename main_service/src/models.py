@@ -12,6 +12,15 @@ class RenewModel(BaseModel):
 
 
 class OperationResult(BaseModel):
+   '''
+    # Return codes:
+* 0 - ok
+* 1 - token error
+* 2 - unknown internal exception error
+* 3 - neural network is not ready
+* 4 - microservice error
+* 5 - db error
+    '''
     status: int
 
 
@@ -22,17 +31,44 @@ class GroupAddModel(BaseModel):
 
 
 class GroupAndStatusModel(BaseModel):
+   '''
+    # Return codes:
+* 0 - ok
+* 1 - token error
+* 2 - unknown internal exception error
+* 3 - neural network is not ready
+* 4 - microservice error
+* 5 - db error
+    '''
     group_id: int
     group_status: int
 
 
 class GroupAndStatusModelList(BaseModel):
+   '''
+    # Return codes:
+* 0 - ok
+* 1 - token error
+* 2 - unknown internal exception error
+* 3 - neural network is not ready
+* 4 - microservice error
+* 5 - db error
+    '''
     status: int
     data: list[GroupAndStatusModel]
     count: int
 
 
 class DataString(BaseModel):
+   '''
+    # Return codes:
+* 0 - ok
+* 1 - token error
+* 2 - unknown internal exception error
+* 3 - neural network is not ready
+* 4 - microservice error
+* 5 - db error
+    '''
     data: str
     status: int
 
