@@ -103,16 +103,19 @@ async def verify(data: VerifyModel):
     query_dict = data.request
     vk_token = data.vk_token
     logging.info("/verify")
-    if is_valid(query=query_dict, secret=conf.client_secret):
-        try:
+    try:
+        if is_valid(query=query_dict, secret=conf.client_secret):
             db.add_token(vk_token)
+            logging.info("/verify OK")
             return OperationResult(status=0)
-        except DBException as exc:
-            logging.error(f"DB ERROR: {exc}")
-            return OperationResult(status=5)
-        except Exception as exc:
-            logging.error(f"ERROR: {exc}")
-            return OperationResult(status=2)
+        logging.error("/verify bad query")
+        return OperationResult(status=1)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        return OperationResult(status=5)
+    except Exception as exc:
+        logging.error(f"ERROR: {exc}")
+        return OperationResult(status=2)
 
 
 @app.post("/renew", response_model=OperationResult)
@@ -121,10 +124,12 @@ async def renew(data: RenewModel):
     old_vk_token = data.old_vk_token
     new_vk_token = data.new_vk_token
     logging.info("/renew")
-    if not db.is_valid_token(old_vk_token):
-        return OperationResult(status=1)
     try:
+        if not db.is_valid_token(old_vk_token):
+            logging.error("/renew bad old token")
+            return OperationResult(status=1)
         db.update_token(old_vk_token, new_vk_token)
+        logging.info("/renew OK")
         return OperationResult(status=0)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
@@ -141,11 +146,13 @@ async def add_group(data: GroupAddModel):
     texts = data.texts
     vk_token = data.vk_token
     logging.info("/add_group")
-    if not db.is_valid_token(vk_token):
-        return OperationResult(status=1)
     try:
+        if not db.is_valid_token(vk_token):
+            logging.error("/add_group bad token")
+            return OperationResult(status=1)
         db.add_group(group_id, vk_token)
         mmgr.add_group(group_id, texts)
+        logging.info("/add_group OK")
         return OperationResult(status=0)
     except MicroserviceException as exc:
         logging.error(f"MICROSERVICE ERROR: {exc}")
@@ -164,6 +171,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
     logging.info("/get_groups")
     try:
         if not db.is_valid_token(vk_token):
+            logging.error("/get_groups bad token")
             return GroupAndStatusModelList(status=1, data=[], count=0)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
@@ -171,6 +179,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
     if not group_id is None:
         try:
             result = db.get_group_status(group_id)
+            logging.info("/get_groups OK")
             return GroupAndStatusModelList(status=0, data=[GroupAndStatusModel(group_id=group_id, group_status=result)], count=1)
         except DBException as exc:
             logging.error(f"DB ERROR: {exc}")
@@ -184,6 +193,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
+                logging.info("/get_groups OK")
             return GroupAndStatusModelList(status=0, data=result, count=total_len)
         except DBException as exc:
             logging.error(f"DB ERROR: {exc}")
@@ -202,6 +212,7 @@ async def generate_text(data: GenerateQueryModel):
     logging.info("/generate_text")
     try:
         if not db.is_valid_token(vk_token):
+            logging.info("/generate_text bad token")
             return DataString(data="", status=1)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
@@ -211,7 +222,9 @@ async def generate_text(data: GenerateQueryModel):
         group_status = db.get_group_status(group_id)
         if group_status == 0:
             result = mmgr.generate("text_gen", group_id, hint)
+            logging.info("/generate_text OK")
             return DataString(data=result, status=0)
+        logging.error("/generate_text group not ready")
         return DataString(data="", status=3)
     except MicroserviceException as exc:
         logging.error(f"MICROSERVICE ERROR: {exc}")
