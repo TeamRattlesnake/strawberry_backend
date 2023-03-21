@@ -49,13 +49,13 @@ class Database():
                 return False
             return True
         except Exception as exc:
-            raise DBException("Error in tables_exist") from exc
+            raise DBException(f"Error in tables_exist, {exc}") from exc
 
     def migrate(self):
         try:
             self.meta.create_all(self.engine)
         except Exception as exc:
-            raise DBException("Error in migrate") from exc
+            raise DBException(f"Error in migrate, {exc}") from exc
 
     def add_token(self, vk_token):
         try:
@@ -65,7 +65,7 @@ class Database():
                     vk_token_hash=vk_token_hash)
                 connection.execute(insert_query)
         except Exception as exc:
-            raise DBException("Error in add_token") from exc
+            raise DBException(f"Error in add_token, {exc}") from exc
 
     def autoremove_old_tokens(self):
         try:
@@ -75,7 +75,7 @@ class Database():
                     self.vk_token_hashes.c.acquired <= too_old)
                 connection.execute(delete_query)
         except Exception as exc:
-            raise DBException("Error in autoremove_old_tokens") from exc
+            raise DBException(f"Error in autoremove_old_tokens, {exc}") from exc
 
     def is_valid_token(self, vk_token):
         return True
@@ -89,7 +89,7 @@ class Database():
                     return False
                 return True
         except Exception as exc:
-            raise DBException("Error in is_valid_token") from exc
+            raise DBException(f"Error in is_valid_token, {exc}") from exc
 
     def update_token(self, old_vk_token, new_vk_token):
         try:
@@ -100,7 +100,7 @@ class Database():
                     self.vk_token_hashes.c.vk_token_hash == old_vk_token_hash).values(vk_token_hash=new_vk_token_hash)
                 connection.execute(update_query)
         except Exception as exc:
-            raise DBException("Error in update_token") from exc
+            raise DBException(f"Error in update_token, {exc}") from exc
 
     def add_group(self, group_id, vk_token):
         try:
@@ -131,7 +131,7 @@ class Database():
                     group_id=group_id_link, token_id=token_id_link)
                 connection.execute(insert_link_query)
         except Exception as exc:
-            raise DBException("Error in add_group") from exc
+            raise DBException(f"Error in add_group, {exc}") from exc
 
     def update_group_status(self, group_id, status):
         try:
@@ -140,7 +140,7 @@ class Database():
                     self.vk_groups.c.group_id == group_id).values(status_id=status)
                 connection.execute(update_query)
         except Exception as exc:
-            raise DBException("Error in update_group_status") from exc
+            raise DBException(f"Error in update_group_status, {exc}") from exc
 
     def get_group_status(self, group_id):
         try:
@@ -151,7 +151,7 @@ class Database():
                 status = result[0][2]
                 return status
         except Exception as exc:
-            raise DBException("Error in get_group_status") from exc
+            raise DBException(f"Error in get_group_status, {exc}") from exc
 
     def get_all_groups(self):
         try:
@@ -162,7 +162,7 @@ class Database():
                     group_id=row[1], group_status=row[2]) for row in result]
                 return groups
         except Exception as exc:
-            raise DBException("Error in get_all_groups") from exc
+            raise DBException(f"Error in get_all_groups, {exc}") from exc
 
     def get_owned_groups(self, vk_token):
         try:
@@ -187,4 +187,4 @@ class Database():
                     group_id=row[1], group_status=row[2]) for row in result]
                 return groups
         except Exception as exc:
-            raise DBException("Error in get_owned_groups") from exc
+            raise DBException(f"Error in get_owned_groups, {exc}") from exc
