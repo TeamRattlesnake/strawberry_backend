@@ -1,4 +1,5 @@
 import requests
+import traceback
 
 
 class MicroserviceException(Exception):
@@ -32,6 +33,7 @@ class MicroserviceManager:
                     "Internal microservice error (generate)")
             return result
         except Exception as exc:
+            print("traceback.print_exc()")
             raise MicroserviceException(f"Error in generate {exc}") from exc
 
     def check_status(self, group_id):
