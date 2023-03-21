@@ -24,7 +24,13 @@ class MicroserviceManager:
 
     def generate(self, service_name, group_id, hint):
         try:
-            service = self.services[service_name]
+            service_ind = 0
+            for i in range(len(services)):
+                if services[i].docker_name==service_name:
+                    service_ind = i
+                    break
+
+            service = self.services[service_ind]
             response = requests.post(
                 f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=10)
             result = response.json()["result"]
