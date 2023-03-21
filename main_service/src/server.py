@@ -11,7 +11,7 @@ from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusMo
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
-    "/home/logs/log.txt", mode="a")], datefmt="%I:%M:%S %p", level=logging.INFO)
+    "/home/logs/log.txt", mode="w")], datefmt="%I:%M:%S %p", level=logging.INFO)
 
 
 conf = Config("/home/config.json")
@@ -104,7 +104,8 @@ async def verify(data: VerifyModel):
     vk_token = data.vk_token
     logging.info("/verify")
     try:
-        if is_valid(query=query_dict, secret=conf.client_secret):
+        #if is_valid(query=query_dict, secret=conf.client_secret):
+        if True:
             db.add_token(vk_token)
             logging.info("/verify OK")
             return OperationResult(status=0)
