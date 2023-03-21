@@ -32,7 +32,7 @@ class MicroserviceManager:
                     "Internal microservice error (generate)")
             return result
         except Exception as exc:
-            raise MicroserviceException("Error in generate") from exc
+            raise MicroserviceException(f"Error in generate {exc}") from exc
 
     def check_status(self, group_id):
         try:
