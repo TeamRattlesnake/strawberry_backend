@@ -1,5 +1,6 @@
 import requests
 import threading
+import time
 
 
 class MicroserviceException(Exception):
@@ -17,7 +18,7 @@ class MicroserviceManager:
                     requests.post(f"{service.url}:{service.port}/add_group", json={"group_id": group_id, "texts": texts}, timeout=1)
 
                 threading.Thread(target=send_request).start()
-
+                time.sleep(0.2)
                 result = "RUN ASYNC"
                 if result == "ERROR":
                     raise MicroserviceException(

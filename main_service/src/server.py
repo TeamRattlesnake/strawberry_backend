@@ -153,7 +153,7 @@ async def add_group(data: GroupAddModel):
     texts = data.texts
     vk_token = data.vk_token
     logging.info(
-        f"POST /add_group {group_id[:16]} len_texts={len(texts)} {vk_token[:16]}")
+        f"POST /add_group {group_id} len_texts={len(texts)} {vk_token[:16]}")
     try:
         if not db.is_valid_token(vk_token):
             logging.error("/add_group bad token")
