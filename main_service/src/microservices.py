@@ -38,7 +38,7 @@ class MicroserviceManager:
             service = self.services[service_ind]
 
             response = requests.post(
-                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=15)
+                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=35)
             result = response.json()["result"]
             if result == "ERROR":
                 raise MicroserviceException(
@@ -53,7 +53,7 @@ class MicroserviceManager:
             total_count = len(self.services)
             for service in self.services:
                 response = requests.get(
-                    f"{service.url}:{service.port}/check_status", params={"group_id": group_id}, timeout=10)
+                    f"{service.url}:{service.port}/check_status", params={"group_id": group_id}, timeout=2)
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
