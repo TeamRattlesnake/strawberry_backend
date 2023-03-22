@@ -147,6 +147,8 @@ class Database():
                 select_query = select(self.vk_groups).where(
                     self.vk_groups.c.group_id == group_id)
                 result = connection.execute(select_query).fetchall()
+                if len(result)==0:
+                    return 2 #GROUP NOT IN DATABASE
                 status = result[0][2]
                 return status
         except Exception as exc:
