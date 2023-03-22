@@ -13,7 +13,7 @@ class MicroserviceManager:
         try:
             for service in self.services:
                 response = requests.post(f"{service.url}:{service.port}/add_group",
-                                         json={"group_id": group_id, "texts": texts}, timeout=10)
+                                         json={"group_id": group_id, "texts": texts}, timeout=15*60) #Максимальное время (обучение модели - 15 минут)
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
