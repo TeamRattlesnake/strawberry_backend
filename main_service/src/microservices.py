@@ -15,7 +15,8 @@ class MicroserviceManager:
         try:
             for service in self.services:
                 def send_request():
-                    requests.post(f"{service.url}:{service.port}/add_group", json={"group_id": group_id, "texts": texts}, timeout=60*60)
+                    requests.post(f"{service.url}:{service.port}/add_group",
+                                  json={"group_id": group_id, "texts": texts}, timeout=60*60)
 
                 threading.Thread(target=send_request).start()
                 time.sleep(0.2)
@@ -37,7 +38,7 @@ class MicroserviceManager:
             service = self.services[service_ind]
 
             response = requests.post(
-                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=12)
+                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=15)
             result = response.json()["result"]
             if result == "ERROR":
                 raise MicroserviceException(

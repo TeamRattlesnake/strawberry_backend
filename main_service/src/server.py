@@ -11,7 +11,7 @@ from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusMo
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
-    "/home/logs/log.txt", mode="w")], datefmt="%I:%M:%S %p", level=logging.INFO)
+    "/home/logs/log.txt", mode="w", encoding="UTF-8")], datefmt="%I:%M:%S %p", level=logging.INFO)
 
 
 conf = Config("/home/config.json")
@@ -109,7 +109,8 @@ async def verify(data: VerifyModel):
     '''Добавляет токен в базу данных'''
     query_dict = data.request
     vk_token = data.vk_token
-    logging.info(f"POST /verify *secret query_dict* {vk_token[:16]}")
+    logging.info(
+        f"POST /verify\tPARAMS: query_dict=*secret*, vk_token={vk_token[:16]}")
     try:
         if is_valid(query=query_dict, secret=conf.client_secret):
             db.add_token(vk_token)
@@ -130,7 +131,8 @@ async def renew(data: RenewModel):
     '''Заменяет старый токен на новый'''
     old_vk_token = data.old_vk_token
     new_vk_token = data.new_vk_token
-    logging.info(f"POST /renew {old_vk_token[:16]} {new_vk_token[:16]}")
+    logging.info(
+        f"POST /renew\tPARAMS: old_token={old_vk_token[:16]}, new_token={new_vk_token[:16]}")
     try:
         if not db.is_valid_token(old_vk_token):
             logging.error("/renew bad old token")
@@ -153,7 +155,7 @@ async def add_group(data: GroupAddModel):
     texts = data.texts
     vk_token = data.vk_token
     logging.info(
-        f"POST /add_group {group_id} len_texts={len(texts)} {vk_token[:16]}")
+        f"POST /add_group\tPARAMS: group_id={group_id}, len_texts={len(texts)}, vk_token={vk_token[:16]}")
     try:
         if not db.is_valid_token(vk_token):
             logging.error("/add_group bad token")
@@ -176,7 +178,8 @@ async def add_group(data: GroupAddModel):
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str, group_id: int = None, offset: int = None, count: int = None):
     '''Возвращает массив пар айди группы : статус'''
-    logging.info(f"GET /get_groups {vk_token[:16]} {group_id} {offset} {count}")
+    logging.info(
+        f"GET /get_groups\tPARAMS: vk_token={vk_token[:16]}, group_id={group_id}, offset={offset}, count={count}")
     try:
         if not db.is_valid_token(vk_token):
             logging.error("/get_groups bad token")
@@ -217,7 +220,8 @@ async def generate_text(data: GenerateQueryModel):
     group_id = data.group_id
     vk_token = data.vk_token
     hint = data.hint
-    logging.info(f"POST /generate_text {group_id} {vk_token[:16]} {hint}")
+    logging.info(
+        f"POST /generate_text\tPARAMS: group_id={group_id}, vk_token={vk_token[:16]}, hint={hint}")
     try:
         if not db.is_valid_token(vk_token):
             logging.info("/generate_text bad token")
