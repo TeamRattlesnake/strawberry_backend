@@ -11,7 +11,7 @@ from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusMo
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
-    "/home/logs/log.txt", mode="a")], datefmt="%I:%M:%S %p", level=logging.INFO)
+    "/home/logs/log.txt", mode="w")], datefmt="%I:%M:%S %p", level=logging.INFO)
 
 
 conf = Config("/home/config.json")
@@ -49,7 +49,7 @@ def custom_openapi():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="Strawberry",
-        version="0.0.5",
+        version="0.1.0",
         description=DESCRIPTION,
         routes=app.routes,
     )
