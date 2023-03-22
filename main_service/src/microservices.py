@@ -35,8 +35,9 @@ class MicroserviceManager:
             response = requests.post(
                 f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=10)
 
-            print(response)
-            print(response.json())
+            print("INITIAL DATA", {"group_id": group_id, "hint": hint})
+            print("RESPONSE", response)
+            print("RESPONSE JSON", response.json())
 
             result = response.json()["result"]
 
