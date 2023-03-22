@@ -40,7 +40,11 @@ app.add_middleware(
 )
 
 DESCRIPTION = """
-Сервис, генерирующий контент для социальной сети ВКонтакте
+🍓Сервис, генерирующий контент для социальной сети ВКонтакте🍓
+Выпускной проект студентов ОЦ VK в МГТУ:
+* Коленкова Андрея 🍓
+* Романа Медникова 🍓
+* Василия Ермакова 🍓
 """
 
 
@@ -71,7 +75,7 @@ def startup():
             logging.info("Creating tables...\tOK")
     except DBException as exc:
         logging.info(
-            "Cannot connect to database, maybe it is still booting...")
+            "Cannot connect to database, maybe it is still booting... REBOOT NOW!")
         raise Exception(
             "Rebooting and hoping database will be online...") from exc
 
@@ -85,9 +89,11 @@ async def check_statuses():
         groups = db.get_all_groups()
         for group in groups:
             if mmgr.check_status(group.group_id):
+                logging.error(f"group: {group.group_id};\tstatus: READY")
                 db.update_group_status(group.group_id, 0)
             else:
-                db.update_group_status(group.group_id, 3)
+                logging.error(f"group: {group.group_id};\tstatus: NOT READY")
+                db.update_group_status(group.group_id, 1)
         logging.info("Updating groups statuses...\tOK")
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
@@ -102,7 +108,7 @@ async def verify(data: VerifyModel):
     '''Добавляет токен в базу данных'''
     query_dict = data.request
     vk_token = data.vk_token
-    logging.info("/verify")
+    logging.info(f"POST /verify *secret query_dict* {vk_token[:16]}")
     try:
         if is_valid(query=query_dict, secret=conf.client_secret):
             db.add_token(vk_token)
@@ -123,7 +129,7 @@ async def renew(data: RenewModel):
     '''Заменяет старый токен на новый'''
     old_vk_token = data.old_vk_token
     new_vk_token = data.new_vk_token
-    logging.info("/renew")
+    logging.info(f"POST /renew {old_vk_token[:16]} {new_vk_token[:16]}")
     try:
         if not db.is_valid_token(old_vk_token):
             logging.error("/renew bad old token")
@@ -145,7 +151,8 @@ async def add_group(data: GroupAddModel):
     group_id = data.group_id
     texts = data.texts
     vk_token = data.vk_token
-    logging.info("/add_group")
+    logging.info(
+        f"POST /add_group {group_id[:16]} len_texts={len(texts)} {vk_token[:16]}")
     try:
         if not db.is_valid_token(vk_token):
             logging.error("/add_group bad token")
@@ -168,7 +175,7 @@ async def add_group(data: GroupAddModel):
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
 async def get_groups(vk_token: str, group_id: int = None, offset: int = None, count: int = None):
     '''Возвращает массив пар айди группы : статус'''
-    logging.info("/get_groups")
+    logging.info(f"GET /get_groups {vk_token[:16]} {group_id} {offset} {count}")
     try:
         if not db.is_valid_token(vk_token):
             logging.error("/get_groups bad token")
@@ -209,7 +216,7 @@ async def generate_text(data: GenerateQueryModel):
     group_id = data.group_id
     vk_token = data.vk_token
     hint = data.hint
-    logging.info("/generate_text")
+    logging.info(f"POST /generate_text {group_id} {vk_token[:16]} {hint}")
     try:
         if not db.is_valid_token(vk_token):
             logging.info("/generate_text bad token")

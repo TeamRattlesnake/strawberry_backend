@@ -13,13 +13,13 @@ class MicroserviceManager:
         try:
             for service in self.services:
                 response = requests.post(f"{service.url}:{service.port}/add_group",
-                                         json={"group_id": group_id, "texts": texts}, timeout=15*60) #Максимальное время (обучение модели - 15 минут)
+                                         json={"group_id": group_id, "texts": texts}, timeout=15*60)  # Максимальное время (обучение модели - 15 минут)
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
                         "Internal microservice error (add_group)")
         except Exception as exc:
-            raise MicroserviceException("Error in add_group") from exc
+            raise MicroserviceException(f"Error in add_group {exc}") from exc
 
     def generate(self, service_name, group_id, hint):
         try:
@@ -39,7 +39,7 @@ class MicroserviceManager:
                     "Internal microservice error (generate)")
             return result
         except Exception as exc:
-            raise MicroserviceException("Error in generate") from exc
+            raise MicroserviceException(f"Error in generate: {exc}") from exc
 
     def check_status(self, group_id):
         try:
@@ -58,4 +58,5 @@ class MicroserviceManager:
                 return True
             return False
         except Exception as exc:
-            raise MicroserviceException("Error in check_status") from exc
+            raise MicroserviceException(
+                f"Error in check_status: {exc}") from exc
