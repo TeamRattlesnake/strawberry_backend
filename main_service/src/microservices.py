@@ -34,7 +34,12 @@ class MicroserviceManager:
 
             response = requests.post(
                 f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=10)
+
+            print(response)
+            print(response.json())
+
             result = response.json()["result"]
+
             if result == "ERROR":
                 raise MicroserviceException(
                     "Internal microservice error (generate)")
