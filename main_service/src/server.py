@@ -12,7 +12,7 @@ from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusMo
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
-    f"/home/logs/log-{datetime.datetime.now()}.txt", mode="w", encoding="UTF-8")], datefmt="%I:%M:%S %p", level=logging.INFO)
+    f"/home/logs/server_{datetime.datetime.now()}.txt", mode="w", encoding="UTF-8")], datefmt="%I:%M:%S %p", level=logging.INFO)
 
 
 conf = Config("/home/config.json")
