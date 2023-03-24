@@ -1,4 +1,5 @@
 import logging
+import datetime
 from fastapi.openapi.utils import get_openapi
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,7 @@ from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusMo
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
-    "/home/logs/log.txt", mode="w", encoding="UTF-8")], datefmt="%I:%M:%S %p", level=logging.INFO)
+    f"/home/logs/log-{datetime.datetime.now()}.txt", mode="w", encoding="UTF-8")], datefmt="%I:%M:%S %p", level=logging.INFO)
 
 
 conf = Config("/home/config.json")
