@@ -66,6 +66,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+
 def add_user(vk_user_id):
     '''Добавляет vk_user_id в базу данных'''
     try:
@@ -75,6 +76,7 @@ def add_user(vk_user_id):
         return False
     except Exception:
         return False
+
 
 @app.on_event("startup")
 def startup():
@@ -130,6 +132,10 @@ async def add_group(data: GroupAddModel):
         if not is_valid(query=vk_params_dict, secret=conf.client_secret):
             logging.error("/add_group query is not valid")
             return OperationResult(status=1)
+
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+
         db.add_group(group_id, user_id)
         mmgr.add_group(group_id, texts)
         logging.info("/add_group OK")
@@ -149,13 +155,21 @@ async def add_group(data: GroupAddModel):
 async def get_groups(vk_params: str, group_id: int = None, offset: int = None, count: int = None):
     '''Возвращает массив пар айди группы : статус'''
     vk_params_dict = json.loads(vk_params)
-    vk_user_id = vk_params_dict["vk_user_id"]
+    user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
         f"GET /get_groups\tPARAMS: vk_params={vk_params[:16]}..., group_id={group_id}, offset={offset}, count={count}")
     if not is_valid(query=vk_params_dict, secret=conf.client_secret):
         logging.error("/get_groups query is not valid")
         return GroupAndStatusModelList(status=1, data=[], count=0)
+
+    try:
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+    except DBException as exc:
+        logging.error(f"DB ERROR: {exc}")
+        return GroupAndStatusModelList(status=5, data=[], count=0)
+
     if not group_id is None:
         try:
             result = db.get_group_status(group_id)
@@ -169,7 +183,7 @@ async def get_groups(vk_params: str, group_id: int = None, offset: int = None, c
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
-            result = db.get_owned_groups(vk_user_id)
+            result = db.get_owned_groups(user_id)
             total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
@@ -191,14 +205,19 @@ async def generate_text(data: GenerateQueryModel):
     vk_params_dict = json.loads(vk_params)
     group_id = data.group_id
     hint = data.hint
+    user_id = vk_params_dict["vk_user_id"]
+
     logging.info(
         f"POST /generate_text\tPARAMS: vk_params={vk_params[:16]}..., group_id={group_id}, hint={hint}")
 
-    if is_valid(query=vk_params_dict, secret=conf.client_secret):
+    if not is_valid(query=vk_params_dict, secret=conf.client_secret):
         logging.info("/generate_text query is not valid")
         return DataString(data="", status=1)
 
     try:
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+
         group_status = db.get_group_status(group_id)
         if group_status == 0:
             result = mmgr.generate("text_gen", group_id, hint)

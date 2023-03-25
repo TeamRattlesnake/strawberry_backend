@@ -14,11 +14,3 @@ def is_valid(*, query: dict, secret: str) -> bool:
     decoded_hash_code = hash_code.decode(
         'utf-8')[:-1].replace('+', '-').replace('/', '_')
     return query["sign"] == decoded_hash_code
-
-
-def make_sha256(data: dict):
-    data_hash = sha256()
-    data_hash.update(data.encode("UTF-8"))
-    result = data_hash.hexdigest()
-    return result
-

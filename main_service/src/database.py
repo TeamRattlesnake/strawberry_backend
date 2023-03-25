@@ -1,6 +1,5 @@
 import datetime
-from sqlalchemy import create_engine, Table, Column, Integer, String, DateTime, MetaData, ForeignKey, inspect, select, delete, update, insert
-from utils import make_sha256
+from sqlalchemy import create_engine, Table, Column, Integer, DateTime, MetaData, ForeignKey, inspect, select, update, insert
 from models import GroupAndStatusModel
 
 
@@ -45,7 +44,7 @@ class Database():
 
     def tables_exist(self):
         try:
-            if (not inspect(self.engine).has_table("vk_user_ids")) or (not inspect(self.engine).has_table("vk_groups")) or (not inspect(self.engine).has_table("token_group_link")):
+            if (not inspect(self.engine).has_table("vk_user_ids")) or (not inspect(self.engine).has_table("vk_groups")) or (not inspect(self.engine).has_table("id_group_link")):
                 return False
             return True
         except Exception as exc:
@@ -64,7 +63,7 @@ class Database():
                     vk_user_id=vk_user_id)
                 connection.execute(insert_query)
         except Exception as exc:
-            raise DBException(f"Error in add_token {exc}") from exc
+            raise DBException(f"Error in add_user_id: {exc}") from exc
 
     def is_valid_user_id(self, vk_user_id):
         try:
@@ -76,7 +75,7 @@ class Database():
                     return False
                 return True
         except Exception as exc:
-            raise DBException(f"Error in is_valid_user_id {exc}") from exc
+            raise DBException(f"Error in is_valid_user_id: {exc}") from exc
 
     def add_group(self, group_id, vk_user_id):
         try:
@@ -106,7 +105,7 @@ class Database():
                     group_id=group_id_link, vk_user_id=vk_user_id_link)
                 connection.execute(insert_link_query)
         except Exception as exc:
-            raise DBException(f"Error in add_group {exc}") from exc
+            raise DBException(f"Error in add_group: {exc}") from exc
 
     def update_group_status(self, group_id, status):
         try:
@@ -115,7 +114,7 @@ class Database():
                     self.vk_groups.c.group_id == group_id).values(status_id=status)
                 connection.execute(update_query)
         except Exception as exc:
-            raise DBException(f"Error in update_group_status {exc}") from exc
+            raise DBException(f"Error in update_group_status: {exc}") from exc
 
     def get_group_status(self, group_id):
         try:
@@ -128,7 +127,7 @@ class Database():
                 status = result[0][2]
                 return status
         except Exception as exc:
-            raise DBException(f"Error in get_group_status {exc}") from exc
+            raise DBException(f"Error in get_group_status: {exc}") from exc
 
     def get_all_groups(self):
         try:
@@ -139,18 +138,18 @@ class Database():
                     group_id=row[1], group_status=row[2]) for row in result]
                 return groups
         except Exception as exc:
-            raise DBException(f"Error in get_all_groups {exc}") from exc
+            raise DBException(f"Error in get_all_groups: {exc}") from exc
 
     def get_owned_groups(self, vk_user_id):
         try:
             with self.engine.connect() as connection:
                 select_vk_user_id_query = select(self.vk_user_ids.c.id).where(
                     self.vk_user_ids.c.vk_user_id == vk_user_id)
-                token_id_link = connection.execute(
+                vk_user_id_link = connection.execute(
                     select_vk_user_id_query).fetchall()[0][0]
 
                 select_group_ids_query = select(self.id_group_link.c.group_id).where(
-                    self.id_group_link.c.vk_user_id == vk_user_id)
+                    self.id_group_link.c.vk_user_id == vk_user_id_link)
                 select_group_ids = connection.execute(
                     select_group_ids_query).fetchall()
                 select_group_ids = [row[0] for row in select_group_ids]
@@ -163,4 +162,4 @@ class Database():
                     group_id=row[1], group_status=row[2]) for row in result]
                 return groups
         except Exception as exc:
-            raise DBException(f"Error in get_owned_groups {exc}") from exc
+            raise DBException(f"Error in get_owned_groups: {exc}") from exc

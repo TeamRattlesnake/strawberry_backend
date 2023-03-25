@@ -1,6 +1,6 @@
-import requests
 import threading
 import time
+import requests
 
 
 class MicroserviceException(Exception):
