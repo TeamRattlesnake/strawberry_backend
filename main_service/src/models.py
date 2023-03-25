@@ -1,16 +1,6 @@
 from pydantic import BaseModel
 
 
-class VerifyModel(BaseModel):
-    request: dict
-    vk_token: str
-
-
-class RenewModel(BaseModel):
-    old_vk_token: str
-    new_vk_token: str
-
-
 class OperationResult(BaseModel):
     """# Return codes:
      * 0 - ok
@@ -23,10 +13,15 @@ class OperationResult(BaseModel):
     status: int
 
 
+class VerifyModel(BaseModel):
+    vk_params: str
+    vk_token: str
+
+
 class GroupAddModel(BaseModel):
+    vk_params: str
     group_id: int
     texts: list[str]
-    vk_token: str
 
 
 class GroupAndStatusModel(BaseModel):
@@ -70,11 +65,6 @@ class DataString(BaseModel):
 
 
 class GenerateQueryModel(BaseModel):
+    vk_params: str
     group_id: int
-    vk_token: str
-    hint: str = None
-
-
-class GenerateModel(BaseModel):
-    microservice_host_name: str
     hint: str

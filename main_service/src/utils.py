@@ -21,3 +21,4 @@ def make_sha256(data: dict):
     data_hash.update(data.encode("UTF-8"))
     result = data_hash.hexdigest()
     return result
+
