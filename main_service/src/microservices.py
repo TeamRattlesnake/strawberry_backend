@@ -13,7 +13,7 @@ class MicroserviceManager:
         try:
             for service in self.services:
                 response = requests.post(f"{service.url}:{service.port}/add_group",
-                                         json={"group_id": group_id, "texts": texts}, timeout=15).json()
+                                         json={"group_id": group_id, "texts": texts}, timeout=15)
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
