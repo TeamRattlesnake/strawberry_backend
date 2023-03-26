@@ -1,5 +1,3 @@
-import threading
-import time
 import requests
 
 
@@ -14,13 +12,9 @@ class MicroserviceManager:
     def add_group(self, group_id, texts):
         try:
             for service in self.services:
-                def send_request():
-                    requests.post(f"{service.url}:{service.port}/add_group",
-                                  json={"group_id": group_id, "texts": texts}, timeout=60*60)
-
-                threading.Thread(target=send_request).start()
-                time.sleep(0.2)
-                result = "RUN ASYNC"
+                response = requests.post(f"{service.url}:{service.port}/add_group",
+                                         json={"group_id": group_id, "texts": texts}, timeout=15).json()
+                result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
                         "Internal microservice error (add_group)")
@@ -53,7 +47,7 @@ class MicroserviceManager:
             total_count = len(self.services)
             for service in self.services:
                 response = requests.get(
-                    f"{service.url}:{service.port}/check_status", params={"group_id": group_id}, timeout=2)
+                    f"{service.url}:{service.port}/check_status", params={"group_id": group_id}, timeout=15)
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
