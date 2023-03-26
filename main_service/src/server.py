@@ -1,14 +1,14 @@
 import logging
 import time
 from fastapi.openapi.utils import get_openapi
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
-from utils import is_valid
+from utils import is_valid, parse_query_string
 from config import Config
 from database import Database, DBException
 from microservices import MicroserviceManager, MicroserviceException
-from models import VerifyModel, OperationResult, GroupAddModel, GroupAndStatusModelList, DataString, GenerateQueryModel, GroupAndStatusModel, RenewModel
+from models import OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString, GenerateQueryModel
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
@@ -41,7 +41,7 @@ app.add_middleware(
 )
 
 DESCRIPTION = """
-Выпускной проект ОЦ VK в МГТУ команды Team Rattlesnake. Сервис, генерирующий контент для социальной сети ВКонтакте. Станьте популярным в сети с помощью Strawberry!
+Выпускной проект ОЦ VK в МГТУ команды Team Rattlesnake. Сервис, генерирующий контент для социальной сети ВКонтакте. Посты генерируются сами с помощью нейросетей. Станьте популярным в сети с помощью Strawberry!
 
 * Коленков Андрей - Team Lead, Backend Python Dev 🍓
 * Роман Медников - Frontend React Dev 🍓
@@ -64,6 +64,17 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+
+def add_user(vk_user_id):
+    '''Добавляет vk_user_id в базу данных'''
+    try:
+        db.add_user_id(vk_user_id)
+        return True
+    except DBException:
+        return False
+    except Exception:
+        return False
 
 
 @app.on_event("startup")
@@ -105,63 +116,26 @@ async def check_statuses():
         logging.error(f"ERROR: {exc}")
 
 
-@app.post("/verify", response_model=OperationResult)
-async def verify(data: VerifyModel):
-    '''Добавляет токен в базу данных'''
-    query_dict = data.request
-    vk_token = data.vk_token
-    logging.info(
-        f"POST /verify\tPARAMS: query_dict=*secret*, vk_token={vk_token[:16]}")
-    try:
-        if is_valid(query=query_dict, secret=conf.client_secret):
-            db.add_token(vk_token)
-            logging.info("/verify OK")
-            return OperationResult(status=0)
-        logging.error("/verify bad query")
-        return OperationResult(status=1)
-    except DBException as exc:
-        logging.error(f"DB ERROR: {exc}")
-        return OperationResult(status=5)
-    except Exception as exc:
-        logging.error(f"ERROR: {exc}")
-        return OperationResult(status=2)
-
-
-@app.post("/renew", response_model=OperationResult)
-async def renew(data: RenewModel):
-    '''Заменяет старый токен на новый'''
-    old_vk_token = data.old_vk_token
-    new_vk_token = data.new_vk_token
-    logging.info(
-        f"POST /renew\tPARAMS: old_token={old_vk_token[:16]}, new_token={new_vk_token[:16]}")
-    try:
-        if not db.is_valid_token(old_vk_token):
-            logging.error("/renew bad old token")
-            return OperationResult(status=1)
-        db.update_token(old_vk_token, new_vk_token)
-        logging.info("/renew OK")
-        return OperationResult(status=0)
-    except DBException as exc:
-        logging.error(f"DB ERROR: {exc}")
-        return OperationResult(status=5)
-    except Exception as exc:
-        logging.error(f"ERROR: {exc}")
-        return OperationResult(status=2)
-
-
 @app.post("/add_group", response_model=OperationResult)
-async def add_group(data: GroupAddModel):
+async def add_group(data: GroupAddModel, Authorization=Header()):
     '''Добавляет айди группы в базу данных и отправляет массив текстов постов этой группы'''
+
     group_id = data.group_id
     texts = data.texts
-    vk_token = data.vk_token
+    vk_params_dict = parse_query_string(Authorization)
+    user_id = vk_params_dict["vk_user_id"]
+
     logging.info(
-        f"POST /add_group\tPARAMS: group_id={group_id}, len_texts={len(texts)}, vk_token={vk_token[:16]}")
+        f"POST /add_group\tPARAMS: Authorization={Authorization[:16]}..., len_texts={len(texts)}, group_id={group_id}")
     try:
-        if not db.is_valid_token(vk_token):
-            logging.error("/add_group bad token")
+        if not is_valid(query=vk_params_dict, secret=conf.client_secret):
+            logging.error("/add_group query is not valid")
             return OperationResult(status=1)
-        db.add_group(group_id, vk_token)
+
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+
+        db.add_group(group_id, user_id)
         mmgr.add_group(group_id, texts)
         logging.info("/add_group OK")
         return OperationResult(status=0)
@@ -177,17 +151,24 @@ async def add_group(data: GroupAddModel):
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
-async def get_groups(vk_token: str, group_id: int = None, offset: int = None, count: int = None):
+async def get_groups(group_id: int = None, offset: int = None, count: int = None, Authorization=Header()):
     '''Возвращает массив пар айди группы : статус'''
+    vk_params_dict = parse_query_string(Authorization)
+    user_id = vk_params_dict["vk_user_id"]
+
     logging.info(
-        f"GET /get_groups\tPARAMS: vk_token={vk_token[:16]}, group_id={group_id}, offset={offset}, count={count}")
+        f"GET /get_groups\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, offset={offset}, count={count}")
+    if not is_valid(query=vk_params_dict, secret=conf.client_secret):
+        logging.error("/get_groups query is not valid")
+        return GroupAndStatusModelList(status=1, data=[], count=0)
+
     try:
-        if not db.is_valid_token(vk_token):
-            logging.error("/get_groups bad token")
-            return GroupAndStatusModelList(status=1, data=[], count=0)
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
     except DBException as exc:
         logging.error(f"DB ERROR: {exc}")
         return GroupAndStatusModelList(status=5, data=[], count=0)
+
     if not group_id is None:
         try:
             result = db.get_group_status(group_id)
@@ -201,7 +182,7 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
             return GroupAndStatusModelList(status=2, data=[], count=0)
     else:
         try:
-            result = db.get_owned_groups(vk_token)
+            result = db.get_owned_groups(user_id)
             total_len = len(result)
             if (not offset is None) and (not count is None):
                 result = result[offset:offset+count]
@@ -216,22 +197,25 @@ async def get_groups(vk_token: str, group_id: int = None, offset: int = None, co
 
 
 @app.post("/generate_text", response_model=DataString)
-async def generate_text(data: GenerateQueryModel):
+async def generate_text(data: GenerateQueryModel, Authorization=Header()):
     '''Генерирует текст по описанию hint'''
+
+    vk_params_dict = parse_query_string(Authorization)
     group_id = data.group_id
-    vk_token = data.vk_token
     hint = data.hint
+    user_id = vk_params_dict["vk_user_id"]
+
     logging.info(
-        f"POST /generate_text\tPARAMS: group_id={group_id}, vk_token={vk_token[:16]}, hint={hint}")
-    try:
-        if not db.is_valid_token(vk_token):
-            logging.info("/generate_text bad token")
-            return DataString(data="", status=1)
-    except DBException as exc:
-        logging.error(f"DB ERROR: {exc}")
-        return DataString(data="", status=5)
+        f"POST /generate_text\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, hint={hint}")
+
+    if not is_valid(query=vk_params_dict, secret=conf.client_secret):
+        logging.info("/generate_text query is not valid")
+        return DataString(data="", status=1)
 
     try:
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+
         group_status = db.get_group_status(group_id)
         if group_status == 0:
             result = mmgr.generate("text_gen", group_id, hint)

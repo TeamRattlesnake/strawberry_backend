@@ -16,8 +16,7 @@ def is_valid(*, query: dict, secret: str) -> bool:
     return query["sign"] == decoded_hash_code
 
 
-def make_sha256(data: dict):
-    data_hash = sha256()
-    data_hash.update(data.encode("UTF-8"))
-    result = data_hash.hexdigest()
-    return result
+def parse_query_string(query_string):
+    res = dict([pair.split("=") for pair in query_string.split("&")])
+    res["vk_user_id"] = int(res["vk_user_id"])
+    return res
