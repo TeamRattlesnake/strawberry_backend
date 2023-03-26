@@ -2,7 +2,9 @@ from pydantic import BaseModel
 
 
 class OperationResult(BaseModel):
-    """# Return codes:
+    """
+    В status лежит статус операции
+    status codes:
      * 0 - ok
      * 1 - token error
      * 2 - unknown internal exception error
@@ -13,32 +15,28 @@ class OperationResult(BaseModel):
     status: int
 
 
-class VerifyModel(BaseModel):
-    vk_params: str
-    vk_token: str
-
-
 class GroupAddModel(BaseModel):
-    vk_params: str
+    """Модель для добавления группы, принимается айди группы и список текстов"""
     group_id: int
     texts: list[str]
 
 
 class GroupAndStatusModel(BaseModel):
-    """# Return codes:
-     * 0 - ok
-     * 1 - token error
-     * 2 - unknown internal exception error
-     * 3 - neural network is not ready
-     * 4 - microservice error
-     * 5 - db error
+    """
+    Модель, содержащая айди групып и статус
+    status codes:
+     * 0 - group is ready
+     * 1 - group is not ready
+     * 2 - group is not in database
     """
     group_id: int
     group_status: int
 
 
 class GroupAndStatusModelList(BaseModel):
-    """# Return codes:
+    """
+    Модель содержит в себе список GroupAndStatusModel и длину этого списка
+    status codes:
      * 0 - ok
      * 1 - token error
      * 2 - unknown internal exception error
@@ -52,7 +50,9 @@ class GroupAndStatusModelList(BaseModel):
 
 
 class DataString(BaseModel):
-    """# Return codes:
+    """
+    Эта модель представляет собой пару - статус операции и информация в строке
+    status codes:
      * 0 - ok
      * 1 - token error
      * 2 - unknown internal exception error
@@ -60,11 +60,11 @@ class DataString(BaseModel):
      * 4 - microservice error
      * 5 - db error
     """
-    data: str
     status: int
+    data: str
 
 
 class GenerateQueryModel(BaseModel):
-    vk_params: str
+    """Модель для генерации контента из нейросети. Принимает на вход айди группы, для которой надо сгенерировать и подсказу/затравку"""
     group_id: int
     hint: str

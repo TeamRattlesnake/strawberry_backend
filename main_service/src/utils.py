@@ -14,3 +14,9 @@ def is_valid(*, query: dict, secret: str) -> bool:
     decoded_hash_code = hash_code.decode(
         'utf-8')[:-1].replace('+', '-').replace('/', '_')
     return query["sign"] == decoded_hash_code
+
+
+def parse_query_string(query_string):
+    res = dict([pair.split("=") for pair in query_string.split("&")])
+    res["vk_user_id"] = int(res["vk_user_id"])
+    return res

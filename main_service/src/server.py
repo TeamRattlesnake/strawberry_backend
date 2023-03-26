@@ -1,11 +1,10 @@
 import logging
-import json
 import time
 from fastapi.openapi.utils import get_openapi
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
-from utils import is_valid
+from utils import is_valid, parse_query_string
 from config import Config
 from database import Database, DBException
 from microservices import MicroserviceManager, MicroserviceException
@@ -118,16 +117,16 @@ async def check_statuses():
 
 
 @app.post("/add_group", response_model=OperationResult)
-async def add_group(data: GroupAddModel):
+async def add_group(data: GroupAddModel, Authorization=Header()):
     '''Добавляет айди группы в базу данных и отправляет массив текстов постов этой группы'''
-    vk_params = data.vk_params
+
     group_id = data.group_id
     texts = data.texts
-    vk_params_dict = json.loads(vk_params)
+    vk_params_dict = parse_query_string(Authorization)
     user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
-        f"POST /add_group\tPARAMS: vk_params={vk_params[:16]}..., len_texts={len(texts)}, group_id={group_id}")
+        f"POST /add_group\tPARAMS: Authorization={Authorization[:16]}..., len_texts={len(texts)}, group_id={group_id}")
     try:
         if not is_valid(query=vk_params_dict, secret=conf.client_secret):
             logging.error("/add_group query is not valid")
@@ -152,13 +151,13 @@ async def add_group(data: GroupAddModel):
 
 
 @app.get("/get_groups", response_model=GroupAndStatusModelList)
-async def get_groups(vk_params: str, group_id: int = None, offset: int = None, count: int = None):
+async def get_groups(group_id: int = None, offset: int = None, count: int = None, Authorization=Header()):
     '''Возвращает массив пар айди группы : статус'''
-    vk_params_dict = json.loads(vk_params)
+    vk_params_dict = parse_query_string(Authorization)
     user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
-        f"GET /get_groups\tPARAMS: vk_params={vk_params[:16]}..., group_id={group_id}, offset={offset}, count={count}")
+        f"GET /get_groups\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, offset={offset}, count={count}")
     if not is_valid(query=vk_params_dict, secret=conf.client_secret):
         logging.error("/get_groups query is not valid")
         return GroupAndStatusModelList(status=1, data=[], count=0)
@@ -198,17 +197,16 @@ async def get_groups(vk_params: str, group_id: int = None, offset: int = None, c
 
 
 @app.post("/generate_text", response_model=DataString)
-async def generate_text(data: GenerateQueryModel):
+async def generate_text(data: GenerateQueryModel, Authorization=Header()):
     '''Генерирует текст по описанию hint'''
 
-    vk_params = data.vk_params
-    vk_params_dict = json.loads(vk_params)
+    vk_params_dict = parse_query_string(Authorization)
     group_id = data.group_id
     hint = data.hint
     user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
-        f"POST /generate_text\tPARAMS: vk_params={vk_params[:16]}..., group_id={group_id}, hint={hint}")
+        f"POST /generate_text\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, hint={hint}")
 
     if not is_valid(query=vk_params_dict, secret=conf.client_secret):
         logging.info("/generate_text query is not valid")
