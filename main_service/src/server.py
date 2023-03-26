@@ -94,7 +94,7 @@ def startup():
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60)
+@repeat_every(seconds=10)
 async def check_statuses():
     '''Автоматическое удаление старых токенов и обновление статусов пабликов'''
     try:
