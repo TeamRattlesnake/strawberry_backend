@@ -32,7 +32,7 @@ class MicroserviceManager:
             service = self.services[service_ind]
 
             response = requests.post(
-                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=45)
+                f"{service.url}:{service.port}/generate", json={"group_id": group_id, "hint": hint}, timeout=90)
             result = response.json()["result"]
             if result == "ERROR":
                 raise MicroserviceException(
