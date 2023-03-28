@@ -2,3 +2,4 @@ main_service/config.json
 main_service/config_maker.py
 mariadb
 main_service/src/__pycache__
+logs/*
