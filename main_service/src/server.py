@@ -230,7 +230,7 @@ async def generate(data: GenerateQueryModel, Authorization=Header()):
     user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
-        f"POST /generate\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, hint={hint}")
+        f"POST /generate\tPARAMS: Authorization={Authorization[:16]}..., service_name={service_name}, group_id={group_id}, hint={hint}")
 
     if not is_valid(query=vk_params_dict, secret=conf.client_secret):
         logging.info("/generate query is not valid")
