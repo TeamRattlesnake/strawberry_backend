@@ -207,25 +207,33 @@ async def get_services(Authorization=Header()):
         logging.info("/generate_text query is not valid")
         return DataList(data=[], status=1)
 
+    try:
+        if not db.is_valid_user_id(user_id):
+            db.add_user_id(user_id)
+    except DBException as exc:
+            logging.error(f"DB ERROR: {exc}")
+            return DataList(data=[], status=5)
+
     result = [item.docker_name for item in conf.services]
     logging.info("/generate_text OK")
     return DataList(data=result, status=0)
 
 
-@app.post("/generate_text", response_model=DataString)
-async def generate_text(data: GenerateQueryModel, Authorization=Header()):
+@app.post("/generate", response_model=DataString)
+async def generate(data: GenerateQueryModel, Authorization=Header()):
     '''Генерирует текст по описанию hint'''
 
     vk_params_dict = parse_query_string(Authorization)
+    service_name = data.service_name
     group_id = data.group_id
     hint = data.hint
     user_id = vk_params_dict["vk_user_id"]
 
     logging.info(
-        f"POST /generate_text\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, hint={hint}")
+        f"POST /generate\tPARAMS: Authorization={Authorization[:16]}..., group_id={group_id}, hint={hint}")
 
     if not is_valid(query=vk_params_dict, secret=conf.client_secret):
-        logging.info("/generate_text query is not valid")
+        logging.info("/generate query is not valid")
         return DataString(data="", status=1)
 
     try:
@@ -234,10 +242,10 @@ async def generate_text(data: GenerateQueryModel, Authorization=Header()):
 
         group_status = db.get_group_status(group_id)
         if group_status == 0:
-            result = mmgr.generate("text_gen", group_id, hint)
-            logging.info("/generate_text OK")
+            result = mmgr.generate(service_name, group_id, hint)
+            logging.info("/generate OK")
             return DataString(data=result, status=0)
-        logging.error("/generate_text group not ready")
+        logging.error("/generate group not ready")
         return DataString(data="", status=3)
     except MicroserviceException as exc:
         logging.error(f"MICROSERVICE ERROR: {exc}")

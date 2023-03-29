@@ -23,11 +23,15 @@ class MicroserviceManager:
 
     def generate(self, service_name, group_id, hint):
         try:
-            service_ind = 0
+            service_ind = -1
             for i in range(len(self.services)):
                 if self.services[i].docker_name == service_name:
                     service_ind = i
                     break
+
+            if service_ind == -1:
+                raise MicroserviceException(
+                    f"Wrong microservice name - {service_name}")
 
             service = self.services[service_ind]
 
