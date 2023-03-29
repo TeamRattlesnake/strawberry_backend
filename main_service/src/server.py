@@ -8,7 +8,7 @@ from utils import is_valid, parse_query_string
 from config import Config
 from database import Database, DBException
 from microservices import MicroserviceManager, MicroserviceException
-from models import OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString, GenerateQueryModel
+from models import OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString, GenerateQueryModel, DataList
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
@@ -194,6 +194,22 @@ async def get_groups(group_id: int = None, offset: int = None, count: int = None
         except Exception as exc:
             logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
+
+
+@app.get("/get_services", response_model=DataList)
+async def get_services(Authorization=Header()):
+    vk_params_dict = parse_query_string(Authorization)
+    user_id = vk_params_dict["vk_user_id"]
+    logging.info(
+        f"POST /get_services\tPARAMS: Authorization={Authorization[:16]}...")
+
+    if not is_valid(query=vk_params_dict, secret=conf.client_secret):
+        logging.info("/generate_text query is not valid")
+        return DataList(data=[], status=1)
+
+    result = [item.docker_name for item in conf.services]
+    logging.info("/generate_text OK")
+    return DataList(data=result, status=0)
 
 
 @app.post("/generate_text", response_model=DataString)
