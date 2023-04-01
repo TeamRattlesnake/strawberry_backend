@@ -198,6 +198,12 @@ async def get_groups(group_id: int = None, offset: int = None, count: int = None
 
 @app.get("/get_services", response_model=DataList)
 async def get_services(Authorization=Header()):
+    '''Возвращает список доступных сервисов для generate
+* text_gen - возвращает исходный текст + небольшое продолжение
+* summarize - возвращает краткое содержание текста
+* rephrase - возвращает слегка измененный исходный текст
+* bert - Возвращает список слов (в строке, разделенных запятыми), которые подходят на место [MASK]
+'''
     vk_params_dict = parse_query_string(Authorization)
     user_id = vk_params_dict["vk_user_id"]
     logging.info(
