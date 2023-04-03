@@ -17,9 +17,10 @@ class MicroserviceManager:
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
-                        "Internal microservice error (add_group)")
+                        f"Internal microservice error (add_group): {service.docker_name}")
         except Exception as exc:
-            raise MicroserviceException(f"Error in add_group {exc}") from exc
+            raise MicroserviceException(
+                f"Error in microservice {service.docker_name} add_group {exc}") from exc
 
     def generate(self, service_name, group_id, hint):
         try:
@@ -40,10 +41,11 @@ class MicroserviceManager:
             result = response.json()["result"]
             if result == "ERROR":
                 raise MicroserviceException(
-                    "Internal microservice error (generate)")
+                    f"Internal microservice error (generate): {service.docker_name}")
             return result
         except Exception as exc:
-            raise MicroserviceException(f"Error in generate: {exc}") from exc
+            raise MicroserviceException(
+                f"Error in microservice {service.docker_name} generate: {exc}") from exc
 
     def check_status(self, group_id):
         try:
@@ -55,7 +57,7 @@ class MicroserviceManager:
                 result = response.json()["result"]
                 if result == "ERROR":
                     raise MicroserviceException(
-                        "Internal microservice error (check_status)")
+                        f"Internal microservice error (check_status): {service.docker_name}")
                 if result == "OK":
                     ready_count += 1
             if ready_count == total_count:
@@ -63,4 +65,4 @@ class MicroserviceManager:
             return False
         except Exception as exc:
             raise MicroserviceException(
-                f"Error in check_status: {exc}") from exc
+                f"Error in microservice {service.docker_name} check_status: {exc}") from exc
