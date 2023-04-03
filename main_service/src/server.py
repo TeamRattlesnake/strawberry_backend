@@ -8,7 +8,7 @@ from utils import is_valid, parse_query_string
 from config import Config
 from database import Database, DBException
 from microservices import MicroserviceManager, MicroserviceException
-from models import OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString, GenerateQueryModel, DataList
+from models import OperationResult, GroupAddModel, GroupAndStatusModel, GroupAndStatusModelList, DataString, GenerateQueryModel
 
 
 logging.basicConfig(format="%(asctime)s %(message)s", handlers=[logging.FileHandler(
@@ -194,35 +194,6 @@ async def get_groups(group_id: int = None, offset: int = None, count: int = None
         except Exception as exc:
             logging.error(f"ERROR: {exc}")
             return GroupAndStatusModelList(status=2, data=[], count=0)
-
-
-@app.get("/get_services", response_model=DataList)
-async def get_services(Authorization=Header()):
-    '''Возвращает список доступных сервисов для generate
-* text_gen - возвращает исходный текст + небольшое продолжение
-* summarize - возвращает краткое содержание текста
-* rephrase - возвращает слегка измененный исходный текст
-* bert - Возвращает список слов (в строке, разделенных запятыми), которые подходят на место [MASK]
-'''
-    vk_params_dict = parse_query_string(Authorization)
-    user_id = vk_params_dict["vk_user_id"]
-    logging.info(
-        f"POST /get_services\tPARAMS: Authorization={Authorization[:16]}...")
-
-    if not is_valid(query=vk_params_dict, secret=conf.client_secret):
-        logging.info("/generate_text query is not valid")
-        return DataList(data=[], status=1)
-
-    try:
-        if not db.is_valid_user_id(user_id):
-            db.add_user_id(user_id)
-    except DBException as exc:
-            logging.error(f"DB ERROR: {exc}")
-            return DataList(data=[], status=5)
-
-    result = [item.docker_name for item in conf.services]
-    logging.info("/generate_text OK")
-    return DataList(data=result, status=0)
 
 
 @app.post("/generate", response_model=DataString)

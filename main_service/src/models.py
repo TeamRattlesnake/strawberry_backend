@@ -69,18 +69,3 @@ class GenerateQueryModel(BaseModel):
     service_name: str
     group_id: int
     hint: str
-
-
-class DataList(BaseModel):
-    """
-    Эта модель представляет собой список строк. Используется для получения списка микросервисов
-     status codes:
-     * 0 - ok
-     * 1 - token error
-     * 2 - unknown internal exception error
-     * 3 - neural network is not ready
-     * 4 - microservice error
-     * 5 - db error
-    """
-    status: int
-    data: list[str]
